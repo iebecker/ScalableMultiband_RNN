@@ -3,8 +3,9 @@ from tensorflow.python.ops import math_ops
 from tensorflow.python.keras import backend
 from tensorflow.python.ops import nn
 
-def last_relevant( output, length):
-    '''Get the last relevant output from the network'''
+
+def last_relevant(output, length):
+    """Get the last relevant output from the network"""
     batch_size = tf.shape(output)[0]
     max_length = tf.shape(output)[1]
     out_size = int(output.get_shape()[2])
@@ -13,23 +14,23 @@ def last_relevant( output, length):
     relevant = tf.gather(flat, index)
     return relevant
 
+
 class Masked_R2(tf.keras.metrics.Metric):
     def __init__(self,
-                 mask_value = -99.99,
+                 mask_value=-99.99,
                  name='Masked_R2'):
         super(Masked_R2, self).__init__(name)
         self.mask_value = mask_value
 
-        self.n_ymean =self.add_weight(name='n_ymean', initializer='zeros')
+        self.n_ymean = self.add_weight(name='n_ymean', initializer='zeros')
         self.n = self.add_weight(name='n', initializer='zeros')
         self.SS_res = self.add_weight(name='SS_res', initializer='zeros')
-
 
         self.sum_y2 = self.add_weight(name='sum_y2', initializer='zeros')
         self.sum_y = self.add_weight(name='sum_y', initializer='zeros')
 
     def update_state(self, y_true, y_pred, sample_weight=None):
-        mask = tf.greater(y_true, self.mask_value+1) # Values with measurements
+        mask = tf.greater(y_true, self.mask_value + 1)  # Values with measurements
         mask = tf.cast(mask, tf.float32)
 
         y_true = tf.boolean_mask(y_true, mask)
@@ -40,9 +41,8 @@ class Masked_R2(tf.keras.metrics.Metric):
 
         SS_res = tf.reduce_sum(tf.math.squared_difference(y_pred, y_true))
 
-
         sum_y2 = tf.reduce_sum(tf.math.square(y_true))
-        sum_y  = tf.reduce_sum(y_true)
+        sum_y = tf.reduce_sum(y_true)
 
         self.n_ymean.assign_add(n_ymean)
         self.n.assign_add(n)
@@ -51,16 +51,16 @@ class Masked_R2(tf.keras.metrics.Metric):
         self.sum_y2.assign_add(sum_y2)
         self.sum_y.assign_add(sum_y)
 
-
     def result(self):
-        ymean = self.n_ymean/self.n
-        SS_tot =self.sum_y2 - 2.0*ymean*self.sum_y + self.n*tf.math.square(ymean)
+        ymean = self.n_ymean / self.n
+        SS_tot = self.sum_y2 - 2.0 * ymean * self.sum_y + self.n * tf.math.square(ymean)
 
-        return 1-tf.math.divide_no_nan(self.SS_res, SS_tot)
+        return 1 - tf.math.divide_no_nan(self.SS_res, SS_tot)
+
 
 class Masked_RMSE(tf.keras.metrics.Metric):
     def __init__(self,
-                 mask_value = -99.99,
+                 mask_value=-99.99,
                  name='Masked_RMSE'):
         super(Masked_RMSE, self).__init__(name)
         self.mask_value = mask_value
@@ -69,7 +69,7 @@ class Masked_RMSE(tf.keras.metrics.Metric):
         self.N = self.add_weight(name='N', initializer='zeros')
 
     def update_state(self, y_true, y_pred, sample_weight=None):
-        mask = tf.greater(y_true, self.mask_value+1) # Values with measurements
+        mask = tf.greater(y_true, self.mask_value + 1)  # Values with measurements
         mask = tf.cast(mask, tf.float32)
 
         y_true = tf.boolean_mask(y_true, mask)
@@ -81,16 +81,16 @@ class Masked_RMSE(tf.keras.metrics.Metric):
         self.SE.assign_add(error_sq)
         self.N.assign_add(N)
 
-
     def result(self):
         return tf.math.sqrt(tf.math.divide_no_nan(self.SE, self.N))
+
 
 class CustomFinalF1Score(tf.keras.metrics.Metric):
     def __init__(self,
                  num_classes,
                  mask_value,
-                  **kwargs):
-        '''Only returns macro average'''
+                 **kwargs):
+        """Only returns macro average"""
         super(CustomFinalF1Score, self).__init__(**kwargs)
         self.mask_value = mask_value
         self.num_classes = num_classes
@@ -98,13 +98,11 @@ class CustomFinalF1Score(tf.keras.metrics.Metric):
         self.fp = self.add_weight("fp", shape=(num_classes,), initializer="zeros", dtype=tf.float32)
         self.fn = self.add_weight("fn", shape=(num_classes,), initializer="zeros", dtype=tf.float32)
 
-
     def reset_state(self):
         for s in self.variables:
             s.assign(tf.zeros(shape=s.shape))
 
     def update_state(self, y_true, y_pred, sample_weight=None):
-
         # Get last prediction and transform to label
         y_true, y_pred = self.RelevantPredictions(y_true, y_pred)
 
@@ -117,9 +115,9 @@ class CustomFinalF1Score(tf.keras.metrics.Metric):
         # TP - Diagonal
         tp = tf.linalg.diag_part(cm)
         # FP - Sum over column minus diagonal
-        fp = tf.reduce_sum(cm, axis=0)-tp
+        fp = tf.reduce_sum(cm, axis=0) - tp
         # FN - Sum over row minus diagonal
-        fn = tf.reduce_sum(cm, axis=1)-tp
+        fn = tf.reduce_sum(cm, axis=1) - tp
 
         tp = tf.cast(tp, tf.float32)
         fp = tf.cast(fp, tf.float32)
@@ -129,37 +127,32 @@ class CustomFinalF1Score(tf.keras.metrics.Metric):
         self.fp.assign_add(fp)
         self.fn.assign_add(fn)
 
-
     def result(self):
-        F1 = tf.math.divide_no_nan(self.tp, (self.tp+(self.fp+self.fn)/2) )
+        f1 = tf.math.divide_no_nan(self.tp, (self.tp + (self.fp + self.fn) / 2))
+        macro_f1 = tf.reduce_mean(f1)  # MAcro avg
+        return macro_f1
 
-        macro_F1 = tf.reduce_mean(F1) # MAcro avg
 
-        return macro_F1
-
-    # @tf.function( experimental_relax_shapes=True)
     def RelevantPredictions(self, y_true, y_pred):
         y_true = tf.cast(y_true, tf.float32)
         # Boolean mask
-        mask = tf.greater(y_pred, self.mask_value+1)[:,:,0]
+        mask = tf.greater(y_pred, self.mask_value + 1)[:, :, 0]
         mask = tf.cast(mask, tf.float32)
         # Length of each lc
         N = tf.cast(tf.reduce_sum(mask, axis=1), tf.int32)
-
-        #Extract the final prediction
+        # Extract the final prediction
         y_pred = last_relevant(y_pred, N)
-
         # Get the predictions via argmax
         y_true = tf.argmax(y_true, axis=1)
         y_pred = tf.argmax(y_pred, axis=1)
-
         return y_true, y_pred
+
 
 class CustomTopKFinalAccuracy(tf.keras.metrics.Metric):
     def __init__(self,
                  k=2,
-                 mask_value = -99.9,
-                  **kwargs):
+                 mask_value=-99.9,
+                 **kwargs):
         super(CustomTopKFinalAccuracy, self).__init__(**kwargs)
         self.mask_value = mask_value
         self.N = self.add_weight("N_batch", shape=(), initializer="zeros", dtype=tf.float32)
@@ -176,14 +169,14 @@ class CustomTopKFinalAccuracy(tf.keras.metrics.Metric):
         self.N.assign_add(N)
         self.topk.assign_add(topk)
 
-        self.total_topk = self.topk/self.N
+        self.total_topk = self.topk / self.N
         return self.total_topk
 
     def result(self):
         return self.total_topk
 
     def last_relevant(self, output, length):
-        '''Get the last relevant output from the network'''
+        """Get the last relevant output from the network"""
         batch_size = tf.shape(output)[0]
         max_length = tf.shape(output)[1]
         out_size = int(output.get_shape()[2])
@@ -192,13 +185,13 @@ class CustomTopKFinalAccuracy(tf.keras.metrics.Metric):
         relevant = tf.gather(flat, index)
         return relevant
 
-    @tf.function( experimental_relax_shapes=True)
+    @tf.function(experimental_relax_shapes=True)
     def compute_topk(self, y_true, y_pred, k=5):
         # Boolean mask
-        mask = tf.greater(y_pred, self.mask_value+1)[:,:,0]
+        mask = tf.greater(y_pred, self.mask_value + 1)[:, :, 0]
         mask = tf.cast(mask, tf.float32)
         # Length of each lc
-        N =tf.cast(tf.reduce_sum(mask, axis=1), tf.int32)
+        N = tf.cast(tf.reduce_sum(mask, axis=1), tf.int32)
         # Get last prediction
         y_pred = self.last_relevant(y_pred, N)
 
@@ -208,15 +201,16 @@ class CustomTopKFinalAccuracy(tf.keras.metrics.Metric):
         true = tf.cast(math_ops.argmax(y_true, axis=-1), tf.int32)
         pred = y_pred
 
-        res = nn.in_top_k(pred, true , k)
+        res = nn.in_top_k(pred, true, k)
         values = math_ops.cast(res, backend.floatx())
 
         N_batch = tf.cast(N_batch, tf.float32)
         return tf.reduce_sum(values), N_batch
 
+
 class CustomFinalAccuracy(tf.keras.metrics.Metric):
     def __init__(self,
-                 mask_value = -99.9,
+                 mask_value=-99.9,
                  **kwargs):
         super(CustomFinalAccuracy, self).__init__(**kwargs)
         self.mask_value = mask_value
@@ -233,14 +227,14 @@ class CustomFinalAccuracy(tf.keras.metrics.Metric):
         self.N.assign_add(N)
         self.acc.assign_add(acc)
 
-        self.total_acc = self.acc/self.N
+        self.total_acc = self.acc / self.N
         return self.total_acc
 
     def result(self):
         return self.total_acc
 
     def last_relevant(self, output, length):
-        '''Get the last relevant output from the network'''
+        """Get the last relevant output from the network"""
         batch_size = tf.shape(output)[0]
         max_length = tf.shape(output)[1]
         out_size = int(output.get_shape()[2])
@@ -249,35 +243,35 @@ class CustomFinalAccuracy(tf.keras.metrics.Metric):
         relevant = tf.gather(flat, index)
         return relevant
 
-    @tf.function( experimental_relax_shapes=True)
+    @tf.function(experimental_relax_shapes=True)
     def compute_acc(self, y_true, y_pred):
         y_true = tf.cast(y_true, tf.float32)
         # Boolean mask
-        mask = tf.greater(y_pred, self.mask_value+1)[:,:,0]
+        mask = tf.greater(y_pred, self.mask_value + 1)[:, :, 0]
         mask = tf.cast(mask, tf.float32)
         # Length of each lc
         N = tf.cast(tf.reduce_sum(mask, axis=1), tf.int32)
 
-        #Extract the final prediction
+        # Extract the final prediction
         y_pred = self.last_relevant(y_pred, N)
 
-
         values = math_ops.cast(
-              math_ops.equal(
-                  math_ops.argmax(y_true, axis=-1), math_ops.argmax(y_pred, axis=-1)),
-              backend.floatx()
-                    )
+            math_ops.equal(
+                math_ops.argmax(y_true, axis=-1), math_ops.argmax(y_pred, axis=-1)),
+            backend.floatx()
+        )
 
         # Divide the accuracy by each sequence length - N_skip
         N_batch = tf.cast(tf.shape(mask)[0], tf.float32)
 
         return tf.reduce_sum(values), N_batch
 
+
 class CustomAccuracy(tf.keras.metrics.Metric):
     def __init__(self,
-                 N_skip = 5,
-                 mask_value = -99.9,
-                  **kwargs):
+                 N_skip=5,
+                 mask_value=-99.9,
+                 **kwargs):
         super(CustomAccuracy, self).__init__(**kwargs)
         self.mask_value = mask_value
         self.N_skip = N_skip
@@ -294,56 +288,57 @@ class CustomAccuracy(tf.keras.metrics.Metric):
         self.N.assign_add(N)
         self.acc.assign_add(acc)
 
-        self.total_acc = self.acc/self.N
+        self.total_acc = self.acc / self.N
         return self.total_acc
 
     def result(self):
         return self.total_acc
 
-    @tf.function( experimental_relax_shapes=True)
+    @tf.function(experimental_relax_shapes=True)
     def compute_acc(self, y_true, y_pred):
-        N_skip= self.N_skip
+        N_skip = self.N_skip
         y_true = tf.cast(y_true, tf.float32)
         # Boolean masks
-        mask =tf.greater(y_pred, self.mask_value+1)[:,:,0]
+        mask = tf.greater(y_pred, self.mask_value + 1)[:, :, 0]
         mask = tf.cast(mask, tf.float32)
         # Length of each lc
-        N =tf.reduce_sum(mask, axis=1)
+        N = tf.reduce_sum(mask, axis=1)
         # Total number of timesteps
         reps = tf.shape(mask)[1]
         # Repeat the true label $reps times
         y_true = tf.expand_dims(y_true, 1)
-        y_true = tf.repeat(y_true,[reps],axis=1)
+        y_true = tf.repeat(y_true, [reps], axis=1)
 
         original = math_ops.cast(
-              math_ops.equal(
-                  math_ops.argmax(y_true, axis=-1), math_ops.argmax(y_pred, axis=-1)),
-              backend.floatx()
-                    )
+            math_ops.equal(
+                math_ops.argmax(y_true, axis=-1), math_ops.argmax(y_pred, axis=-1)),
+            backend.floatx()
+        )
 
         # All 1 tensor (the ones we want to skip)
         m11 = tf.ones(shape=(tf.shape(mask)[0], N_skip), dtype=tf.float32)
         # All ones,( the padding) Note the shape
-        m12 = tf.zeros(shape=(tf.shape(mask)[0], tf.shape(mask)[1]-N_skip), dtype=tf.float32)
+        m12 = tf.zeros(shape=(tf.shape(mask)[0], tf.shape(mask)[1] - N_skip), dtype=tf.float32)
         # Concat both tensors along the time dimension
         m1 = tf.concat((m11, m12), axis=1)
         # Substract the first steps to the real mask
-        mask = mask-m1
+        mask = mask - m1
 
         # Apply the mask
         masked = math_ops.multiply(original, mask)
         # Compute the sum of accuracy along timesteps
         values = tf.reduce_sum(masked, axis=1)
         # Divide the accuracy by each sequence length - N_skip
-        values = tf.divide(values, N-N_skip)
+        values = tf.divide(values, N - N_skip)
         N_batch = tf.cast(tf.shape(mask)[0], tf.float32)
         return tf.reduce_sum(values), N_batch
+
 
 class CustomTopKAccuracy(tf.keras.metrics.Metric):
     def __init__(self,
                  k=2,
-                 N_skip = 5,
-                 mask_value = -99.9,
+                 N_skip=5,
+                 mask_value=-99.9,
                  **kwargs):
         super(CustomTopKAccuracy, self).__init__(**kwargs)
         self.mask_value = mask_value
@@ -362,53 +357,51 @@ class CustomTopKAccuracy(tf.keras.metrics.Metric):
         self.N.assign_add(N)
         self.topk.assign_add(topk)
 
-        self.total_topk = self.topk/self.N
+        self.total_topk = self.topk / self.N
         return self.total_topk
 
     def result(self):
         return self.total_topk
 
-    @tf.function( experimental_relax_shapes=True)
+    @tf.function(experimental_relax_shapes=True)
     def compute_topk(self, y_true, y_pred, k=5):
         N_skip = self.N_skip
         # Boolean mask
-        mask = tf.greater(y_pred, self.mask_value+1)[:,:,0]
+        mask = tf.greater(y_pred, self.mask_value + 1)[:, :, 0]
         mask = tf.cast(mask, tf.float32)
         # Length of each lc
-        N =tf.reduce_sum(mask, axis=1)
+        N = tf.reduce_sum(mask, axis=1)
         # Total number of timesteps
         reps = tf.shape(mask)[1]
         # Repeat the true label $reps times
         y_true = tf.expand_dims(y_true, 1)
-        y_true = tf.repeat(y_true,[reps],axis=1)
-
-
+        y_true = tf.repeat(y_true, [reps], axis=1)
 
         N_batch = tf.shape(y_pred)[0]
         num_classes = tf.shape(y_pred)[2]
-        exp_pred = tf.reshape(y_pred, shape=(N_batch*reps, num_classes))
-        exp_true = tf.reshape(y_true, shape=(N_batch*reps, num_classes))
+        exp_pred = tf.reshape(y_pred, shape=(N_batch * reps, num_classes))
+        exp_true = tf.reshape(y_true, shape=(N_batch * reps, num_classes))
         true = tf.cast(math_ops.argmax(exp_true, axis=-1), tf.int32)
         pred = exp_pred
 
-        res = nn.in_top_k(pred, true , k)
+        res = nn.in_top_k(pred, true, k)
         res = math_ops.cast(res, backend.floatx())
-        res = tf.reshape(res,(N_batch, reps) )
+        res = tf.reshape(res, (N_batch, reps))
 
         # All 1 tensor (the ones we want to skip)
         m11 = tf.ones(shape=(tf.shape(mask)[0], N_skip), dtype=tf.float32)
         # All ones,( the padding) Note the shape
-        m12 = tf.zeros(shape=(tf.shape(mask)[0], tf.shape(mask)[1]-N_skip), dtype=tf.float32)
+        m12 = tf.zeros(shape=(tf.shape(mask)[0], tf.shape(mask)[1] - N_skip), dtype=tf.float32)
         # Concat both tensors along the time dimension
         m1 = tf.concat((m11, m12), axis=1)
         # Substract the first steps to the real mask
-        mask = mask-m1
+        mask = mask - m1
 
         # # Apply the mask
         masked = math_ops.multiply(res, mask)
         # # Compute the sum of accuracy along timesteps
         values = tf.reduce_sum(masked, axis=1)
         # # Divide the accuracy by each sequence length - N_skip
-        values = tf.divide(values, N-N_skip)
+        values = tf.divide(values, N - N_skip)
         N_batch = tf.cast(N_batch, tf.float32)
         return tf.reduce_sum(values), N_batch

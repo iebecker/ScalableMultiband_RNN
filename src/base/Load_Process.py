@@ -11,7 +11,7 @@ from tqdm import tqdm
 import pickle
 from classifier.Model.CustomScalers import ParamPhysScaler
 
-class Prep_Data():
+class Prep_Data:
     """Class that implements functions prepare, read,
     transform and save the data"""
 
