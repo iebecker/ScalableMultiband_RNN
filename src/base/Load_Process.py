@@ -1,15 +1,17 @@
+import os
+import pickle
+from json import dump
+
+import base.Utils as utils
 import numpy as np
 import pandas as pd
 import tensorflow as tf
-import os
-from json import dump
+from classifier.CustomScalers import ParamPhysScaler
 from joblib import Parallel, delayed
-from sklearn.model_selection import train_test_split
 from numpy.random import shuffle
-import base.Utils as utils
+from sklearn.model_selection import train_test_split
 from tqdm import tqdm
-import pickle
-from classifier.Model.CustomScalers import ParamPhysScaler
+
 
 class Prep_Data:
     """Class that implements functions prepare, read,

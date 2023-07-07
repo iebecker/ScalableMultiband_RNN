@@ -7,16 +7,16 @@ import base.Parser as Parser
 from pandas import DataFrame
 import numpy as np
 import json
-from classifier.Model.CustomModels_v4 import CustomModelBand, CustomModelCentral
-from classifier.Model.CustomMetrics import CustomAccuracy, CustomTopKAccuracy, CustomFinalAccuracy, \
-    CustomTopKFinalAccuracy
-from classifier.Model.CustomMetrics import Masked_RMSE, CustomFinalF1Score, Masked_R2
-from classifier.Model.CustomLayers import InputCentral, SauceLayer, ApplyMask, LastRelevantLayer, MeanMagLayer
-from classifier.Model.CustomLayers import RNNLayersCentral, RNNLayersBands, MeanColorLayer, PhysicalParamsLayer
-from classifier.Model.CustomLayers import AllTimes, RawTimesLayer
-from classifier.Model.CustomLosses import CrossEntropy_FullWeights, CategoricalFocalLoss, MSE_masked
+from classifier.CustomModels import CustomModelBand, CustomModelCentral
 
-import BaseClass.plot as plot
+from classifier.CustomMetrics import *
+# from classifier.Model.CustomLayers import InputCentral, SauceLayer, ApplyMask, LastRelevantLayer, MeanMagLayer
+# from classifier.Model.CustomLayers import RNNLayersCentral, RNNLayersBands, MeanColorLayer, PhysicalParamsLayer
+# from classifier.Model.CustomLayers import AllTimes, RawTimesLayer
+# CrossEntropy_FullWeights, CategoricalFocalLoss, MSE_masked
+from classifier.CustomLosses import *
+from classifier.CustomLayers import *
+import base.plot as plot
 from sklearn.metrics import classification_report, r2_score, mean_squared_error
 
 import pickle
@@ -117,7 +117,6 @@ class Network(Multiband.Network):
                                          )
 
         self.loss_functions[i] = {
-            # 'Class': CategoricalFocalLoss(N_skip=self.N_skip, gamma = 5.0),
             'Class': CrossEntropy_FullWeights(N_skip=self.N_skip,
                                               mask_value=self.mask_value,
                                               ),
@@ -175,7 +174,7 @@ class Network(Multiband.Network):
                 Sauce[j] = Sauce_Layers[j](OutputsBands[j])
 
             # Perform LayerNorm on the inputs
-            Sauce[j] = tf.keras.layers.LayerNormalization(name='LayerNorm_Sauce')(Sauce[j])
+            Sauce[j] = tf.keras.layers.LayerNormalization(name='LayerNorm_Sauce_'+str(j))(Sauce[j])
 
             # Compute the translation layer if applicable
             if self.use_output_layers_bands:

@@ -273,9 +273,6 @@ class CustomModelCentral(tf.keras.Model):
             # Here we have the output of the model. Dict in the real case
             predictions = self(input_,
                                training=True)
-
-            # loss_value = self.compiled_loss(target_, predictions)
-
             loss_value = self.compiled_loss(y_true=target_,  # ['Class'],
                                             y_pred=predictions,
                                             sample_weight=sample_weight_

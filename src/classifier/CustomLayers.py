@@ -4,7 +4,7 @@ import numpy as np
 
 
 class PhysicalParamsLayer(tf.keras.Model):
-    # This model behaves diferently in prediction and in
+    # This model behaves differently in prediction and in
     def __init__(self,
                  regression_size,
                  physical_params,
@@ -250,8 +250,11 @@ class RawTimesLayer(tf.keras.layers.Layer):
 
 
 class AllTimes(tf.keras.layers.Layer):
-    def __init__(self, n_bands):
-        super(AllTimes, self).__init__()
+    def __init__(self,
+                 n_bands,
+                 **kwargs
+                 ):
+        super(AllTimes, self).__init__(**kwargs)
         # self.num_classes = num_classes
         self.supports_masking = True
         self.n_bands = n_bands
@@ -439,8 +442,8 @@ class ApplyMask(tf.keras.layers.Layer):
 
 
 class InputCentral(tf.keras.layers.Layer):
-    def __init__(self):
-        super(InputCentral, self).__init__()
+    def __init__(self, **kwargs):
+        super(InputCentral, self).__init__(**kwargs)
         # self.num_classes = num_classes
         self.supports_masking = True
 
@@ -494,9 +497,10 @@ class RNNLayersCentral(tf.keras.Model):
                  implementation=1,
                  return_sequences=True,
                  return_state=False,
-                 bidirectional=False
+                 bidirectional=False,
+                 **kwargs
                  ):
-        super(RNNLayersCentral, self).__init__()
+        super(RNNLayersCentral, self).__init__(**kwargs)
         self.supports_masking = True
         self.bidirectional = bidirectional
         self.rnns = [[], []]
@@ -639,8 +643,9 @@ class RNNLayersBands(tf.keras.Model):
                  use_gated_common=False,
                  l1=0.0,
                  l2=0.0,
+                 **kwargs
                  ):
-        super(RNNLayersBands, self).__init__()
+        super(RNNLayersBands, self).__init__(**kwargs)
 
         """Creates RNNs for each band. It can be implemented with the custom GRU implementation
         the CUDnn implementations."""

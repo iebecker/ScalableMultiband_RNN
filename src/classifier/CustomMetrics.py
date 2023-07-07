@@ -1,7 +1,6 @@
 import tensorflow as tf
-from tensorflow.python.ops import math_ops
+from tensorflow.python.ops import math_ops, nn
 from tensorflow.python.keras import backend
-from tensorflow.python.ops import nn
 
 
 def last_relevant(output, length):
