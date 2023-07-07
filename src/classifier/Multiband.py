@@ -384,7 +384,7 @@ class Network(Multiband.Network):
 
         self.__initialize_datasets(tfrecords_train, tfrecords_val, tfrecords_test)
         self.__define_inputs()
-        self.__add_placehoders()
+        self.__add_placeholders()
         self.__add_writers()
         self.__add_models()
         self.__add_callbacks()
@@ -668,7 +668,7 @@ class Network(Multiband.Network):
         # Define the input shapes
         self.__define_inputs_test()
         # Add placeholders
-        self.__add_placehoders()
+        self.__add_placeholders()
         # Build the models
         self.__add_models()
         # Load weights

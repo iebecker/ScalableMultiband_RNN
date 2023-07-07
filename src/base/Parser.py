@@ -110,7 +110,7 @@ class Parser:
         # Extract ID
         ID = cast(context_data['ID'], string)
         # label of the light curve
-        label = cast(context_data['label'], int32)
+        label = cast(context_data['Label'], int32)
         # Encode the label as a hone-hot tensor
         label = one_hot(label, self.num_classes, on_value=1, off_value=0, axis=-1, dtype=int32)
 
