@@ -8,7 +8,8 @@ import base.Multiband as Multiband
 import base.Parser as Parser
 import base.plot as plot
 import numpy as np
-import tensorflow as tf
+from tensorflow import summary, constant, string, shape, range, TensorSpec, float32, reshape, gather, cast, \
+    constant_initializer, int32, keras
 import tensorflow_addons as tfa
 from classifier.CustomLayers import *
 from classifier.CustomLosses import *
@@ -73,22 +74,22 @@ class Network(Multiband.Network):
         projections = self.sauce[i]
         for j in range(len(self.fc_layers_bands)):
             # Traditional BatchNorm
-            projections = tf.keras.layers.Dense(self.fc_layers_bands[j],
-                                                activation=None,
-                                                use_bias=False,
-                                                )(projections)
-            projections = tf.keras.layers.BatchNormalization()(projections, training=True)
-            projections = tf.keras.activations.relu(projections)
+            projections = keras.layers.Dense(self.fc_layers_bands[j],
+                                             activation=None,
+                                             use_bias=False,
+                                             )(projections)
+            projections = keras.layers.BatchNormalization()(projections, training=True)
+            projections = keras.activations.relu(projections)
 
-            projections = tf.keras.layers.Dropout(self.dropout)(projections)
+            projections = keras.layers.Dropout(self.dropout)(projections)
         # Add softmax layer
-        self.predictions_prob[i] = tf.keras.layers.Dense(self.num_classes,
-                                                         activation='softmax',
-                                                         use_bias=True,
-                                                         name='Predictions',
-                                                         bias_initializer=tf.constant_initializer(
+        self.predictions_prob[i] = keras.layers.Dense(self.num_classes,
+                                                      activation='softmax',
+                                                      use_bias=True,
+                                                      name='Predictions',
+                                                      bias_initializer=constant_initializer(
                                                              1.0 / self.numpy_weights),
-                                                         )(projections)
+                                                      )(projections)
 
         ApplyMasks = ApplyMask(self.num_classes,
                                mask_value=self.mask_value,
@@ -103,16 +104,16 @@ class Network(Multiband.Network):
         }
 
         # Define the input and output signature
-        input_sig_0 = {'ID': tf.TensorSpec(shape=(None,), dtype=tf.string)}
+        input_sig_0 = {'ID': TensorSpec(shape=(None,), dtype=string)}
         for bb in range(self.n_bands):
-            input_sig_0['input_LC_' + str(bb)] = tf.TensorSpec(shape=(None, None, self.w), dtype=tf.float32)
-            input_sig_0['O_' + str(bb)] = tf.TensorSpec(shape=(None, None), dtype=tf.int32)
-            input_sig_0['N_' + str(bb)] = tf.TensorSpec(shape=(None,), dtype=tf.int32)
-            input_sig_0['M0_' + str(bb)] = tf.TensorSpec(shape=(None,), dtype=tf.float32)
-            input_sig_0['T0_' + str(bb)] = tf.TensorSpec(shape=(None,), dtype=tf.float32)
-            input_sig_0['U_' + str(bb)] = tf.TensorSpec(shape=(None, None,), dtype=tf.float32)
+            input_sig_0['input_LC_' + str(bb)] = TensorSpec(shape=(None, None, self.w), dtype=float32)
+            input_sig_0['O_' + str(bb)] = TensorSpec(shape=(None, None), dtype=int32)
+            input_sig_0['N_' + str(bb)] = TensorSpec(shape=(None,), dtype=int32)
+            input_sig_0['M0_' + str(bb)] = TensorSpec(shape=(None,), dtype=float32)
+            input_sig_0['T0_' + str(bb)] = TensorSpec(shape=(None,), dtype=float32)
+            input_sig_0['U_' + str(bb)] = TensorSpec(shape=(None, None,), dtype=float32)
 
-        input_sig_1 = {'Class': tf.TensorSpec(shape=(None, self.num_classes), dtype=tf.int32)}
+        input_sig_1 = {'Class': TensorSpec(shape=(None, self.num_classes), dtype=int32)}
 
         self.models[i] = CustomModelBand(inputs=self.inputs,
                                          outputs=self.outputs_[i],
@@ -169,7 +170,7 @@ class Network(Multiband.Network):
             # Concatenate the raw input to each band
             if self.use_raw_input_central:
                 sauce_layers[j] = SauceLayer(len(outputs_bands[j]) + 1, name='SauceLayer_Central_' + str(j))
-                projection_raw_input = tf.keras.layers.Dense(self.size_hidden_bands[0])
+                projection_raw_input = keras.layers.Dense(self.size_hidden_bands[0])
                 projected_raw_input = projection_raw_input(self.inputs_central['input_LC_' + str(j)])
 
                 sauce[j] = sauce_layers[j]([projected_raw_input] + outputs_bands[j])
@@ -179,34 +180,34 @@ class Network(Multiband.Network):
                 sauce[j] = sauce_layers[j](outputs_bands[j])
 
             # Perform LayerNorm on the inputs
-            sauce[j] = tf.keras.layers.LayerNormalization(name='LayerNorm_Sauce_' + str(j))(sauce[j])
+            sauce[j] = keras.layers.LayerNormalization(name='LayerNorm_Sauce_' + str(j))(sauce[j])
 
             # Compute the translation layer if applicable
             if self.use_output_layers_bands:
                 # sauce[j] = self.band_output_kernels[j](sauce[j])
-                sauce[j] = tf.keras.layers.Dense(self.size_hidden_bands[-1],
-                                                 activation='relu',
-                                                 use_bias=True,
-                                                 kernel_initializer='glorot_uniform',
-                                                 bias_initializer='glorot_uniform',
-                                                 name='Band_Output_Layer_1_' + str(j)
-                                                 )(sauce[j])
+                sauce[j] = keras.layers.Dense(self.size_hidden_bands[-1],
+                                              activation='relu',
+                                              use_bias=True,
+                                              kernel_initializer='glorot_uniform',
+                                              bias_initializer='glorot_uniform',
+                                              name='Band_Output_Layer_1_' + str(j)
+                                              )(sauce[j])
                 # sauce[j] = tf.keras.layers.Dropout(self.dropout)(sauce[j])
                 # sauce[j] = tf.keras.layers.LayerNormalization()(sauce[j])
-                sauce[j] = tf.keras.layers.Dense(self.size_hidden_bands[-1],
-                                                 activation='relu',
-                                                 use_bias=True,
-                                                 kernel_initializer='glorot_uniform',
-                                                 bias_initializer='glorot_uniform',
-                                                 name='Band_Output_Layer_2_' + str(j)
-                                                 )(sauce[j])
-                sauce[j] = tf.keras.layers.Dense(self.size_hidden_bands[-1],
-                                                 activation='relu',
-                                                 use_bias=True,
-                                                 kernel_initializer='glorot_uniform',
-                                                 bias_initializer='glorot_uniform',
-                                                 name='Band_Output_Layer_3_' + str(j)
-                                                 )(sauce[j])
+                sauce[j] = keras.layers.Dense(self.size_hidden_bands[-1],
+                                              activation='relu',
+                                              use_bias=True,
+                                              kernel_initializer='glorot_uniform',
+                                              bias_initializer='glorot_uniform',
+                                              name='Band_Output_Layer_2_' + str(j)
+                                              )(sauce[j])
+                sauce[j] = keras.layers.Dense(self.size_hidden_bands[-1],
+                                              activation='relu',
+                                              use_bias=True,
+                                              kernel_initializer='glorot_uniform',
+                                              bias_initializer='glorot_uniform',
+                                              name='Band_Output_Layer_3_' + str(j)
+                                              )(sauce[j])
 
         # Concat the sauces, along the axis 1.
         ns = [self.inputs_central['N_' + str(i)] for i in range(self.n_bands)]
@@ -222,7 +223,7 @@ class Network(Multiband.Network):
         delta_times = compute_deltas(raw_times, n_central)
 
         # Perform LayerNorm on the sorted states
-        sorted_states = tf.keras.layers.LayerNormalization()(sorted_states)
+        sorted_states = keras.layers.LayerNormalization()(sorted_states)
 
         # Make the spine
         rnn_central = RNNLayersCentral(self.size_hidden_central,
@@ -239,26 +240,26 @@ class Network(Multiband.Network):
         output_central = sauce_central(output_central)
 
         # Concatenate the mean colors and times to the sauce output
-        output_central = tf.keras.layers.Concatenate(axis=-1, name='Concat_info')([output_central,
-                                                                                   colors,
-                                                                                   delta_times])
+        output_central = keras.layers.Concatenate(axis=-1, name='Concat_info')([output_central,
+                                                                                colors,
+                                                                                delta_times])
 
         dense_central = output_central
         for k in range(len(self.fc_layers_central)):
-            dense_central = tf.keras.layers.Dense(self.fc_layers_central[k],
-                                                  activation=None,
-                                                  use_bias=False,
-                                                  )(dense_central)
-            dense_central = tf.keras.layers.BatchNormalization(name='Final_BN_' + str(k))(dense_central, training=True)
-            dense_central = tf.keras.layers.ReLU(name='Final_Dense_' + str(k))(dense_central)
+            dense_central = keras.layers.Dense(self.fc_layers_central[k],
+                                               activation=None,
+                                               use_bias=False,
+                                               )(dense_central)
+            dense_central = keras.layers.BatchNormalization(name='Final_BN_' + str(k))(dense_central, training=True)
+            dense_central = keras.layers.ReLU(name='Final_Dense_' + str(k))(dense_central)
 
         # Compute the predictions of the classifier
-        d_predictions_central = tf.keras.layers.Dense(self.num_classes,
-                                                      activation='softmax',
-                                                      use_bias=True,
-                                                      name='Prediction',
-                                                      bias_initializer=tf.constant_initializer(1.0 / self.numpy_weights)
-                                                      )
+        d_predictions_central = keras.layers.Dense(self.num_classes,
+                                                   activation='softmax',
+                                                   use_bias=True,
+                                                   name='Prediction',
+                                                   bias_initializer=constant_initializer(1.0 / self.numpy_weights)
+                                                   )
         prediction_central = d_predictions_central(dense_central)
 
         # Everything masked is self.mask_value
@@ -282,19 +283,19 @@ class Network(Multiband.Network):
             output = last_output_central
             for l in range(len(self.regression_size)):
                 # Add the layer
-                output = tf.keras.layers.Dense(self.regression_size[l],
-                                               activation=None,
-                                               use_bias=False,
-                                               name='Dense_' + str(l) + '_' + param
-                                               )(output)
-                output = tf.keras.layers.BatchNormalization(name='BN_' + str(l) + '_' + param
-                                                            )(output, training=True)
-                output = tf.keras.activations.relu(output)
+                output = keras.layers.Dense(self.regression_size[l],
+                                            activation=None,
+                                            use_bias=False,
+                                            name='Dense_' + str(l) + '_' + param
+                                            )(output)
+                output = keras.layers.BatchNormalization(name='BN_' + str(l) + '_' + param
+                                                         )(output, training=True)
+                output = keras.activations.relu(output)
 
-            last_phys[param] = tf.keras.layers.Dense(1,
-                                                    activation=None,
-                                                    use_bias=True,
-                                                    name='Pred_' + param)(output)
+            last_phys[param] = keras.layers.Dense(1,
+                                                  activation=None,
+                                                  use_bias=True,
+                                                  name='Pred_' + param)(output)
 
         self.outputs_end = {
             'Class': masked_prediction_central,
@@ -306,20 +307,20 @@ class Network(Multiband.Network):
 
         # Define the input and output signature
 
-        input_sig_0 = {'ID': tf.TensorSpec(shape=(None,), dtype=tf.string)}
+        input_sig_0 = {'ID': TensorSpec(shape=(None,), dtype=string)}
         for bb in range(self.n_bands):
-            input_sig_0['input_LC_' + str(bb)] = tf.TensorSpec(shape=(None, None, self.w), dtype=tf.float32)
-            input_sig_0['O_' + str(bb)] = tf.TensorSpec(shape=(None, None), dtype=tf.int32)
-            input_sig_0['N_' + str(bb)] = tf.TensorSpec(shape=(None,), dtype=tf.int32)
-            input_sig_0['M0_' + str(bb)] = tf.TensorSpec(shape=(None,), dtype=tf.float32)
-            input_sig_0['T0_' + str(bb)] = tf.TensorSpec(shape=(None,), dtype=tf.float32)
-            input_sig_0['U_' + str(bb)] = tf.TensorSpec(shape=(None, None,), dtype=tf.float32)
+            input_sig_0['input_LC_' + str(bb)] = TensorSpec(shape=(None, None, self.w), dtype=float32)
+            input_sig_0['O_' + str(bb)] = TensorSpec(shape=(None, None), dtype=int32)
+            input_sig_0['N_' + str(bb)] = TensorSpec(shape=(None,), dtype=int32)
+            input_sig_0['M0_' + str(bb)] = TensorSpec(shape=(None,), dtype=float32)
+            input_sig_0['T0_' + str(bb)] = TensorSpec(shape=(None,), dtype=float32)
+            input_sig_0['U_' + str(bb)] = TensorSpec(shape=(None, None,), dtype=float32)
 
-        input_sig_1 = {'Class': tf.TensorSpec(shape=(None, self.num_classes), dtype=tf.int32),
-                       'FinalClass': tf.TensorSpec(shape=(None, self.num_classes), dtype=tf.int32)
+        input_sig_1 = {'Class': TensorSpec(shape=(None, self.num_classes), dtype=int32),
+                       'FinalClass': TensorSpec(shape=(None, self.num_classes), dtype=int32)
                        }
         for param in self.physical_params:
-            input_sig_1[param] = tf.TensorSpec(shape=(None,), dtype=tf.float32)
+            input_sig_1[param] = TensorSpec(shape=(None,), dtype=float32)
 
         self.model_central = CustomModelCentral(inputs=self.inputs_central,
                                                 outputs=self.outputs_end,
@@ -417,7 +418,7 @@ class Network(Multiband.Network):
         if not self.boolean_EarlyStopping:
             # Start training after step_wait steps
             if self.step > self.steps_wait or self.step == 0:
-                target['FinalClass'] = tf.constant([[0] * self.num_classes], dtype=tf.int32)
+                target['FinalClass'] = constant([[0] * self.num_classes], dtype=int32)
                 # Train multiple times per step
                 for _ in range(self.train_steps_central):
                     self.model_central.reset_states()
@@ -481,51 +482,51 @@ class Network(Multiband.Network):
         for j in range(self.n_bands):
             # Write train logs
             with self.train_summary_writers[j].as_default():
-                tf.summary.scalar('Classifier_Loss_train', self.logs_train[j]['train_loss'], step=self.epoch)
-                tf.summary.scalar('Classifier_Accuracy_train', self.logs_train[j]['Class_Acc'], step=self.epoch)
+                summary.scalar('Classifier_Loss_train', self.logs_train[j]['train_loss'], step=self.epoch)
+                summary.scalar('Classifier_Accuracy_train', self.logs_train[j]['Class_Acc'], step=self.epoch)
 
-                tf.summary.scalar('Stop Training', self.models[j].stop_training, step=self.epoch)
+                summary.scalar('Stop Training', self.models[j].stop_training, step=self.epoch)
             # Evaluate bands val
             self.models[j].reset_states()  # Reset states after each batch
             self.logs_val[j] = self.models[j].evaluate(self.dataset_val,
                                                        return_dict=True,
                                                        )
             with self.val_summary_writers[j].as_default():
-                tf.summary.scalar('Classifier_Loss_val', self.logs_val[j]['Class_loss'], step=self.epoch)
-                tf.summary.scalar('Classifier_Accuracy_val', self.logs_val[j]['Class_Acc'], step=self.epoch)
+                summary.scalar('Classifier_Loss_val', self.logs_val[j]['Class_loss'], step=self.epoch)
+                summary.scalar('Classifier_Accuracy_val', self.logs_val[j]['Class_Acc'], step=self.epoch)
 
         with self.train_summary_writer_C.as_default():
-            tf.summary.scalar('Classifier_Loss_train', self.log_train_central['train_loss'], step=self.epoch)
-            tf.summary.scalar('Classifier_Accuracy_train', self.log_train_central['Class_CentralAcc'], step=self.epoch)
-            tf.summary.scalar('Classifier_Top2Accuracy', self.log_train_central['Class_CentralTop2'], step=self.epoch)
-            tf.summary.scalar('Classifier_FinalAccuracy', self.log_train_central['Class_FinalAcc'], step=self.epoch)
-            tf.summary.scalar('Classifier_FinalTop2Accuracy', self.log_train_central['Class_FinalTop2'],
-                              step=self.epoch)
-            tf.summary.scalar('Classifier_Final_FScore', self.log_train_central['Class_Final_FScore'], step=self.epoch)
+            summary.scalar('Classifier_Loss_train', self.log_train_central['train_loss'], step=self.epoch)
+            summary.scalar('Classifier_Accuracy_train', self.log_train_central['Class_CentralAcc'], step=self.epoch)
+            summary.scalar('Classifier_Top2Accuracy', self.log_train_central['Class_CentralTop2'], step=self.epoch)
+            summary.scalar('Classifier_FinalAccuracy', self.log_train_central['Class_FinalAcc'], step=self.epoch)
+            summary.scalar('Classifier_FinalTop2Accuracy', self.log_train_central['Class_FinalTop2'],
+                           step=self.epoch)
+            summary.scalar('Classifier_Final_FScore', self.log_train_central['Class_Final_FScore'], step=self.epoch)
 
-            tf.summary.scalar('Stop Training', self.model_central.stop_training, step=self.epoch)
+            summary.scalar('Stop Training', self.model_central.stop_training, step=self.epoch)
             for param in self.physical_params:
-                tf.summary.scalar('Regression_Masked_RMSE_' + param,
-                                  self.log_train_central['Pred_' + param + '_' + 'Masked_RMSE'], step=self.epoch)
-                tf.summary.scalar('Regression_Masked_R2_' + param,
-                                  self.log_train_central['Pred_' + param + '_' + 'Masked_R2'], step=self.epoch)
+                summary.scalar('Regression_Masked_RMSE_' + param,
+                               self.log_train_central['Pred_' + param + '_' + 'Masked_RMSE'], step=self.epoch)
+                summary.scalar('Regression_Masked_R2_' + param,
+                               self.log_train_central['Pred_' + param + '_' + 'Masked_R2'], step=self.epoch)
 
         with self.val_summary_writer_C.as_default():
             self.model_central.reset_states()  # Reset states after each batch
             self.log_val_central = self.model_central.evaluate(self.dataset_val,
                                                                return_dict=True,
                                                                )
-            tf.summary.scalar('Classifier_Loss_val', self.log_val_central['loss'], step=self.epoch)
-            tf.summary.scalar('Classifier_Accuracy_val', self.log_val_central['Class_CentralAcc'], step=self.epoch)
-            tf.summary.scalar('Classifier_Top2Accuracy', self.log_val_central['Class_CentralTop2'], step=self.epoch)
-            tf.summary.scalar('Classifier_FinalAccuracy', self.log_val_central['Class_FinalAcc'], step=self.epoch)
-            tf.summary.scalar('Classifier_FinalTop2Accuracy', self.log_val_central['Class_FinalTop2'], step=self.epoch)
-            tf.summary.scalar('Classifier_Final_FScore', self.log_val_central['Class_Final_FScore'], step=self.epoch)
+            summary.scalar('Classifier_Loss_val', self.log_val_central['loss'], step=self.epoch)
+            summary.scalar('Classifier_Accuracy_val', self.log_val_central['Class_CentralAcc'], step=self.epoch)
+            summary.scalar('Classifier_Top2Accuracy', self.log_val_central['Class_CentralTop2'], step=self.epoch)
+            summary.scalar('Classifier_FinalAccuracy', self.log_val_central['Class_FinalAcc'], step=self.epoch)
+            summary.scalar('Classifier_FinalTop2Accuracy', self.log_val_central['Class_FinalTop2'], step=self.epoch)
+            summary.scalar('Classifier_Final_FScore', self.log_val_central['Class_Final_FScore'], step=self.epoch)
             for param in self.physical_params:
-                tf.summary.scalar('Regression_Masked_RMSE_' + param,
-                                  self.log_val_central['Pred_' + param + '_' + 'Masked_RMSE'], step=self.epoch)
-                tf.summary.scalar('Regression_Masked_R2_' + param,
-                                  self.log_val_central['Pred_' + param + '_' + 'Masked_R2'], step=self.epoch)
+                summary.scalar('Regression_Masked_RMSE_' + param,
+                               self.log_val_central['Pred_' + param + '_' + 'Masked_RMSE'], step=self.epoch)
+                summary.scalar('Regression_Masked_R2_' + param,
+                               self.log_val_central['Pred_' + param + '_' + 'Masked_R2'], step=self.epoch)
 
     def test_loop(self, print_report=True):
         """Run the test loop."""
@@ -638,9 +639,9 @@ class Network(Multiband.Network):
         early_stopping_c = EarlyStopping(monitor='Class_FinalAcc',
                                          **self.callbacks_args
                                          )
-        self.callbacks['Central'] = tf.keras.callbacks.CallbackList([early_stopping_c],
-                                                                    model=self.model_central,
-                                                                    )
+        self.callbacks['Central'] = keras.callbacks.CallbackList([early_stopping_c],
+                                                                 model=self.model_central,
+                                                                 )
 
         # For each scapular
         for b in range(self.n_bands):
@@ -648,7 +649,7 @@ class Network(Multiband.Network):
                                            **self.callbacks_args
                                            )
 
-            self.callbacks[b] = tf.keras.callbacks.CallbackList([
+            self.callbacks[b] = keras.callbacks.CallbackList([
                 early_stopping,
                 # profiler,
             ],
@@ -716,7 +717,7 @@ class Network(Multiband.Network):
         self.use_class_weights = all_metadata['use_class_weights']
         self.numpy_weights = np.array(all_metadata['numpy_weights'])
         self.class_weights = all_metadata['class_weights']
-        self.vector_weights = tf.constant(self.numpy_weights, dtype=tf.float32)
+        self.vector_weights = constant(self.numpy_weights, dtype=float32)
         self.max_L = all_metadata['max_l']
         self.min_L = all_metadata['min_l']
         self.max_N = all_metadata['max_n']
@@ -872,27 +873,27 @@ class Network(Multiband.Network):
     @staticmethod
     def __get_optim(lr, optimizer='Adam'):
         # Specify the scheduler
-        lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(lr,
-                                                                     decay_steps=60,
-                                                                     decay_rate=0.95,
-                                                                     staircase=False)
+        lr_schedule = keras.optimizers.schedules.ExponentialDecay(lr,
+                                                                  decay_steps=60,
+                                                                  decay_rate=0.95,
+                                                                  staircase=False)
         # Specify which optimizer to use
         if optimizer == 'AdamW':
             optim = tfa.optimizers.AdamW(learning_rate=lr_schedule,
                                          weight_decay=1e-4,
                                          )
         else:
-            optim = tf.keras.optimizers.Adam(learning_rate=lr_schedule)
+            optim = keras.optimizers.Adam(learning_rate=lr_schedule)
         return optim
 
     @staticmethod
     def __last_relevant(output, length):
         """Get the last relevant output from the network"""
-        batch_size = tf.shape(output)[0]
-        max_length = tf.shape(output)[1]
-        out_size = tf.cast(output.get_shape()[2], tf.int32)
+        batch_size = shape(output)[0]
+        max_length = shape(output)[1]
+        out_size = cast(output.get_shape()[2], int32)
 
-        index = tf.range(0, batch_size) * max_length + (length - 1)
-        flat = tf.reshape(output, [-1, out_size])
-        relevant = tf.gather(flat, index)
+        index = range(0, batch_size) * max_length + (length - 1)
+        flat = reshape(output, [-1, out_size])
+        relevant = gather(flat, index)
         return relevant
