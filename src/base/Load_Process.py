@@ -497,22 +497,22 @@ class prepData:
                        self.save_dir + 'Val.tfrecord')
 
     def serialize(self,
-                  dict_,
+                  dict,
                   save_path):
         """Serialize objects given the data and path."""
 
-        keys = dict_.keys()
+        keys = dict.keys()
 
         with open(save_path, 'w') as f:
             writer = tf.io.TFRecordWriter(f.name)
-            for i in range(len(dict_['ID'])):
+            for i in range(len(dict['ID'])):
                 # Get one example in the form of a dict_transform
-                temp = {key: dict_[key][i] for key in keys}
+                temp = {key: dict[key][i] for key in keys}
                 ex = self.__func_serialize(temp)
                 writer.write(ex.SerializeToString())
 
     def shard_serialize(self,
-                        dict_,
+                        dict,
                         fold,
                         elements_per_shard=5000,
                         ):
@@ -523,12 +523,12 @@ class prepData:
         if not os.path.exists(fold_dir):
             os.makedirs(fold_dir)
 
-        keys = dict_.keys()
+        keys = dict.keys()
 
         # Number of objects in the split
-        n = len(dict_['ID'])
+        N = len(dict['ID'])
         # Compute the number of shards
-        n_shards = -np.floor_divide(n, -elements_per_shard)
+        n_shards = -np.floor_divide(N, -elements_per_shard)
         # Number of characters of the number of shards
         name_length = len(str(n_shards))
 
@@ -548,17 +548,17 @@ class prepData:
                 i_ini = shard * elements_per_shard
                 i_end = elements_per_shard * (shard + 1)
                 for ii in range(i_ini, i_end):
-                    if ii > n - 1:
+                    if ii > N - 1:
                         break
                     # Get one example in the form of a dict_transform
-                    temp = {key: dict_[key][ii] for key in keys}
+                    temp = {key: dict[key][ii] for key in keys}
                     # Obtain the serialized example
                     ex = self.__func_serialize(temp)
                     # Write it to a file
                     writer.write(ex.SerializeToString())
 
     def shard_serialize_parallel(self,
-                                 dict_,
+                                 dict,
                                  fold,
                                  elements_per_shard=5000,
                                  ):
@@ -569,12 +569,12 @@ class prepData:
         if not os.path.exists(fold_dir):
             os.makedirs(fold_dir)
 
-        keys = dict_.keys()
+        keys = dict.keys()
 
         # Number of objects in the split
-        n = len(dict_['ID'])
+        N = len(dict['ID'])
         # Compute the number of shards
-        n_shards = -np.floor_divide(n, -elements_per_shard)
+        n_shards = -np.floor_divide(N, -elements_per_shard)
         # Number of characters of the number of shards
         name_length = len(str(n_shards))
 
@@ -595,8 +595,8 @@ class prepData:
                                                                          shard_path,
                                                                          elements_per_shard,
                                                                          list(keys),
-                                                                         n,
-                                                                         dict_)
+                                                                         N,
+                                                                         dict)
                                                   for shard, shard_path in tqdm(enumerate(shard_paths)))
 
     def write_metadata_process(self):

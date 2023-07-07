@@ -15,12 +15,13 @@ class ParamPhysScaler:
         self.std = None
         self.min = None
 
-    def __transform_teff(self, x):
+    def __transform_teff(self, X):
         # x_trans = (x-3000.0)/1000.0
-        self.mean = np.mean(x)
-        self.std = np.std(x)
-        x_trans = (x - self.mean) / self.std
-        return x_trans
+        self.mean = np.mean(X)
+        self.std = np.std(X)
+        X_trans = (X - self.mean) / self.std
+
+        return X_trans
 
     def __inverse_transform_teff(self, x_trans):
         x_trans = np.asarray(x_trans)
@@ -58,7 +59,7 @@ class ParamPhysScaler:
         x_trans = x
         return x_trans
 
-    def __inverse_transform_logg(self, x_trans):
+    def __inverse_transform_logg(self, X_trans):
         x_trans = np.asarray(x_trans)
         x = x_trans
         return x
