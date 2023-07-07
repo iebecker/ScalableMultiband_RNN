@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
-from scipy.ndimage.interpolation import shift
 import tensorflow as tf
+from scipy.ndimage.interpolation import shift
 
 
 def read(df, cols, lc_params, n_bands):
@@ -9,7 +9,7 @@ def read(df, cols, lc_params, n_bands):
 
     df: A dataframe of one example
     cols: Columns to be read, [Path, Class, ID] + Param_Phys + Param_Phys_est
-    lc_params: dict containing the format of the light curve file
+    lc_params: dict_transform containing the format of the light curve file
     n_bands: The number of bands of the light curve"""
     # dir_, cls_, ID, t_eff, lum,
     # Read the dataframe for an object, discard the errors
@@ -102,7 +102,7 @@ def process_lc(cls_,
     # min_t-=1
     # print(ID)
     for b in range(n_bands):
-        # Cut to a max_N values per band
+        # Cut to a max_n values per band
         data_[b] = data_[b][:max_N + 2, :]
 
         # Extract time and mag to compute deltas

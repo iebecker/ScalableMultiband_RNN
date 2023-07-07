@@ -4,8 +4,6 @@ import tensorflow as tf
 class CustomModelPhysParams(tf.keras.Model):
     def __init__(self, regression_size, physical_params, **kwargs):
         super(CustomModelPhysParams, self).__init__(**kwargs)
-        # self.supports_masking = True
-        # self.n_bands = n_bands
         self.physical_params = physical_params
         self.regression_size = regression_size
 
@@ -17,24 +15,24 @@ class CustomModelPhysParams(tf.keras.Model):
 
     def call(self):
 
-        Denses_ = {}
+        denses_ = {}
         for param in self.physical_params:
-            Denses_[param] = dense_central
+            denses_[param] = dense_central
             for l in range(len(self.regression_size)):
-                Denses_[param] = tf.keras.layers.Dense(self.regression_size[l],
+                denses_[param] = tf.keras.layers.Dense(self.regression_size[l],
                                                        activation='relu',
                                                        use_bias=True,
                                                        name='Complexity_' + param + '_' + str(l)
-                                                       )(Denses_[param])
+                                                       )(denses_[param])
 
         # Proyection for the loss
-        Outputs_ = {}
+        outputs_ = {}
         for param in self.physical_params:
-            Outputs_[param] = tf.keras.layers.Dense(1,
+            outputs_[param] = tf.keras.layers.Dense(1,
                                                     activation=None,
                                                     use_bias=True,
-                                                    name='Prediction_' + param)(Denses_[param])
-            Outputs_[param] = tf.keras.layers.multiply(maskeds[param], Outputs_[param][:, 0],
+                                                    name='Prediction_' + param)(denses_[param])
+            outputs_[param] = tf.keras.layers.multiply(maskeds[param], outputs_[param][:, 0],
                                                        name='Masked_Prediction_' + param)
 
 
@@ -49,10 +47,8 @@ class CustomModelBand(tf.keras.Model):
         self.N_skip = N_skip
 
     def get_config(self):
-        config = {}
-        config["input_signature"] = self.input_signature
-        config["model_number"] = self.model_number
-        config["name"] = self.kwargs['name']
+        config = {"input_signature": self.input_signature, "model_number": self.model_number,
+                  "name": self.kwargs['name']}
         return config
 
     def compute_weights(self, uncert):
@@ -64,13 +60,13 @@ class CustomModelBand(tf.keras.Model):
         m12 = tf.zeros(shape=(tf.shape(uncert)[0], tf.shape(uncert)[1] - self.N_skip), dtype=tf.float32)
         # Concat both tensors along the time dimension
         m1 = tf.concat((m11, m12), axis=1)
-        # Substract 1 to the mask. This will ommit the first N_skip observations
+        # Subtract 1 to the mask. This will ommit the first N_skip observations
         mask = 1.0 - m1
 
         # Apply the mask previously computed
         uncert = tf.math.multiply_no_nan(mask, uncert)
 
-        # Compute unnomalized weights
+        # Compute un-normalized weights
         weights = tf.math.reciprocal_no_nan(uncert)
 
         # Add them to compute the norm constant
@@ -97,7 +93,7 @@ class CustomModelBand(tf.keras.Model):
 
         # Update metrics (includes the metric that tracks the loss)
         self.compiled_metrics.update_state(target_, predictions, sample_weight_)
-        # Return a dict mapping metric names to current value
+        # Return a dict_transform mapping metric names to current value
         out = {m.name: m.result() for m in self.metrics}
         out['train_loss'] = loss_value
         return out
@@ -124,7 +120,7 @@ class CustomModelCentral(tf.keras.Model):
         m12 = tf.zeros(shape=(tf.shape(input)[0], tf.shape(input)[1] - self.N_skip), dtype=tf.float32)
         # Concat both tensors along the time dimension
         m1 = tf.concat((m11, m12), axis=1)
-        # Subtract 1 to the mask. This will ommit the first N_skip observations
+        # Subtract 1 to the mask. This will omit the first N_skip observations
         mask = 1.0 - m1
         return mask
 
@@ -181,13 +177,13 @@ class CustomModelCentral(tf.keras.Model):
         n0 = tf.cast(tf.math.not_equal(sorted_states, 0.0),
                      tf.float32)
 
-        N_central = tf.cast(tf.reduce_sum(n0, axis=1),
+        n_central = tf.cast(tf.reduce_sum(n0, axis=1),
                             tf.int32)
-        N_max = tf.reduce_max(N_central)
+        n_max = tf.reduce_max(n_central)
 
-        # Ommit the last empy steps
-        sorted_states = sorted_states[:, :N_max]
-        sorted_codes = sorted_codes[:, :N_max]
+        # Omit the last empy steps
+        sorted_states = sorted_states[:, :n_max]
+        sorted_codes = sorted_codes[:, :n_max]
 
         return sorted_states, sorted_codes
 
@@ -247,13 +243,13 @@ class CustomModelCentral(tf.keras.Model):
         m12 = tf.zeros(shape=(tf.shape(uncert)[0], tf.shape(uncert)[1] - self.N_skip), dtype=tf.float32)
         # Concat both tensors along the time dimension
         m1 = tf.concat((m11, m12), axis=1)
-        # Substract 1 to the mask. This will ommit the first N_skip observations
+        # Subtract 1 to the mask. This will ommit the first N_skip observations
         mask = 1.0 - m1
 
         # Apply the mask previously computed
         uncert = tf.math.multiply_no_nan(mask, uncert)
 
-        # Compute unnomalized weights
+        # Compute un-normalized weights
         weights = tf.math.reciprocal_no_nan(uncert)
 
         # Add them to compute the norm constant
@@ -283,7 +279,7 @@ class CustomModelCentral(tf.keras.Model):
 
         # Update metrics (includes the metric that tracks the loss)
         self.compiled_metrics.update_state(target_, predictions)
-        # Return a dict mapping metric names to current value
+        # Return a dict_transform mapping metric names to current value
         out = {m.name: m.result() for m in self.metrics}
         out['train_loss'] = loss_value
         return out

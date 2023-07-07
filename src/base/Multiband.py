@@ -7,6 +7,8 @@ from datetime import datetime
 
 class Network:
     def __init__(self):
+        self.dataset_test = None
+        self.dataset_train = None
         tf.keras.backend.clear_session()
 
     def load_preprocess_data(self, path):
@@ -72,7 +74,7 @@ class Network:
         self.bidirectional_central = train_args['bidirectional_central']
         self.bidirectional_band = train_args['bidirectional_band']
 
-        # Wether to use class weights or not
+        # Whether to use class weights or not
         self.use_class_weights = train_args['use_class_weights']
         if self.use_class_weights:
             total = np.sum([self.element_class[i] for i in self.element_class]) / self.num_classes
@@ -148,8 +150,9 @@ class Network:
         with open(path, 'w') as fp:
             json.dump(self.metadata, fp)
 
-    def __run_RNNs(self, rnns, input_, mask_, backwards=False):
-        """Excecute the rnns based on the input.
+    @staticmethod
+    def __run_rnns(rnns, input_, mask_, backwards=False):
+        """Execute the rnns based on the input.
         outputs the last states of the last layer."""
         # I have to propagate masks
 
@@ -174,31 +177,30 @@ class Network:
 
         for i in range(self.n_bands):
             train_log_dirs[i] = self.log_folder_train + str(i)
-        train_log_dir_C = self.log_folder_train + 'Central'
+        train_log_dir_c = self.log_folder_train + 'Central'
 
         for i in range(self.n_bands):
             self.train_summary_writers[i] = tf.summary.create_file_writer(train_log_dirs[i], max_queue=5,
                                                                           flush_millis=1000)
-        self.train_summary_writer_C = tf.summary.create_file_writer(train_log_dir_C, max_queue=5, flush_millis=1000)
+        self.train_summary_writer_C = tf.summary.create_file_writer(train_log_dir_c, max_queue=5, flush_millis=1000)
 
         for i in range(self.n_bands):
             val_log_dirs[i] = self.log_folder_val + str(i)
-        val_log_dir_C = self.log_folder_val + 'Central'
+        val_log_dir_c = self.log_folder_val + 'Central'
 
         for i in range(self.n_bands):
             self.val_summary_writers[i] = tf.summary.create_file_writer(val_log_dirs[i], max_queue=5, flush_millis=1000)
-        self.val_summary_writer_C = tf.summary.create_file_writer(val_log_dir_C, max_queue=5, flush_millis=1000)
+        self.val_summary_writer_C = tf.summary.create_file_writer(val_log_dir_c, max_queue=5, flush_millis=1000)
 
     def train(self, train_args, tfrecords_train, tfrecords_val):
         self.set_train_settings(train_args)
         self.initialize_datasets(tfrecords_train, tfrecords_val)
         self.__define_inputs()
-        self.__add_placehoders()
+        self.__add_placeholders()
         self.__add_writers()
         self.__add_models()
-        self.train_loop()
 
-    def __add_placehoders(self):
+    def __add_placeholders(self):
         # Create and run the RNNs
         self.RNNs = [None] * self.n_bands
         self.rnn_outputs = [None] * self.n_bands

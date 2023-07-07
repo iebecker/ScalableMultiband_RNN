@@ -13,29 +13,33 @@ from sklearn.model_selection import train_test_split
 from tqdm import tqdm
 
 
-class Prep_Data:
-    """Class that implements functions prepare, read,
-    transform and save the data"""
+class prepData:
+    """Class that implements functions prepare, read, transform and save the data"""
 
     def __init__(self,
-                 max_L=40000,
-                 min_L=500,
-                 min_N=10,
+                 max_l=40000,
+                 min_l=500,
+                 min_n=10,
                  w=2,
                  s=1,
                  njobs=7,
                  n_bands=2,
-                 max_N=None,
+                 max_n=None,
                  ):
 
         # Impose number of min and max light curves per class
+        self.data_val = None
+        self.classes = None
+        self.dataset_header = None
+        self.save_dir = None
+        self.lc_parameters = None
         self.num_classes = None
-        self.max_L = max_L
-        self.min_L = min_L
+        self.max_L = max_l
+        self.min_L = min_l
 
         # Impose a minimum of points per light curve per band
-        self.min_N = min_N
-        self.max_N = max_N
+        self.min_N = min_n
+        self.max_N = max_n
 
         # Container for the data
         self.labels = []
@@ -72,7 +76,7 @@ class Prep_Data:
 
         """Defines paths and split information.
         This function separates the object itself with the different
-        excecutions of the object."""
+        executions of the object."""
 
         # Addresses to store the model and related info
         self.lc_parameters = lc_parameters
@@ -83,7 +87,7 @@ class Prep_Data:
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
 
-        # Define the typoe of split
+        # Define the type of split
         self.default_split = True
         self.custom_test_split = False
         self.custom_splits = False
@@ -162,7 +166,7 @@ class Prep_Data:
     def filter(self, data):
         """Filter the objects to be read.
         First by imposing restriction to the number of data points.
-        Second, by extracting a random sample of up to max_L elements
+        Second, by extracting a random sample of up to max_l elements
         per category."""
 
         # Objects that fulfill the number of datapoints condition
@@ -187,7 +191,7 @@ class Prep_Data:
                 # Skip the class
                 continue
 
-            # Return the min among the number of objects and max_L
+            # Return the min among the number of objects and max_l
             num = min(self.max_L, sel.shape[0])
             # Get a random sample
             sel = sel.sample(num, replace=False, axis=0)
@@ -205,8 +209,6 @@ class Prep_Data:
                      ]
         read_cols = [read_cols, self.params_phys, self.params_phys_est]
         # Filter;Time;Mag;Mag_err;Order
-
-        # Find if passing a dict of names and columns, and passign a np array changes thigns.
         ext = Parallel(self.njobs)(delayed(self.__func_read)(_data_.iloc[i],
                                                              read_cols,
                                                              self.lc_parameters,
@@ -236,7 +238,7 @@ class Prep_Data:
             self.parallel_read_custom()
 
     def parallel_read_default(self):
-        """Read the data using n_jobs. Store them in a dict where the classes
+        """Read the data using n_jobs. Store them in a dict_transform where the classes
         are keys."""
         # Make the selection here, to avoid reading unnecessary data
         self.read_lcs = self.__parallel_read_util(self.data_train)
@@ -244,7 +246,7 @@ class Prep_Data:
         self.lcs = self.__sort_lcs_util(self.read_lcs)
 
     def parallel_read_custom(self):
-        """Read all the datasets using n_jobs. Store each split in a dict where the classes
+        """Read all the datasets using n_jobs. Store each split in a dict_transform where the classes
         are keys."""
 
         # Process according to the different experimental setup
@@ -339,7 +341,8 @@ class Prep_Data:
 
         self.shuffled_dict = self.__process_shuffle_util(out_dict)
 
-    def __process_shuffle_util(self, dict):
+    @staticmethod
+    def __process_shuffle_util(dict):
         """Shuffles the data."""
         # Get the keys
         keys = list(dict.keys())
@@ -347,7 +350,7 @@ class Prep_Data:
         ind = np.arange(dict[keys[0]].shape[0])
         # Shuffle the integers
         shuffle(ind)
-        # Shuffle each element of the dict
+        # Shuffle each element of the dict_transform
         for i in keys:
             dict[i] = dict[i][ind]
         return dict
@@ -386,9 +389,9 @@ class Prep_Data:
                                                 )
             self.scalers[var].fit(nonzero.values.reshape(-1, 1))
 
-    def scalers_transform(self, dict):
+    def scalers_transform(self, dict_transform):
         # Create a DataFrame to transform the data at once
-        df = pd.DataFrame(list(dict['Physical_Values']))
+        df = pd.DataFrame(list(dict_transform['Physical_Values']))
 
         for col in df.columns:
             # Transform the entire column
@@ -400,11 +403,11 @@ class Prep_Data:
         with open(path, 'wb') as fp:
             pickle.dump(self.scalers, fp)
 
-        # Return to the dict representation
+        # Return to the dict_transform representation
         reverse = df.transpose().to_dict()
-        dict['Physical_Values'] = np.array([reverse[i] for i in reverse])
+        dict_transform['Physical_Values'] = np.array([reverse[i] for i in reverse])
 
-        return dict
+        return dict_transform
 
     def split_custom_test(self):
         self.data_train = self.data_train.set_index('ID')
@@ -503,7 +506,7 @@ class Prep_Data:
         with open(save_path, 'w') as f:
             writer = tf.io.TFRecordWriter(f.name)
             for i in range(len(dict['ID'])):
-                # Get one example in the form of a dict
+                # Get one example in the form of a dict_transform
                 temp = {key: dict[key][i] for key in keys}
                 ex = self.__func_serialize(temp)
                 writer.write(ex.SerializeToString())
@@ -547,7 +550,7 @@ class Prep_Data:
                 for ii in range(i_ini, i_end):
                     if ii > N - 1:
                         break
-                    # Get one example in the form of a dict
+                    # Get one example in the form of a dict_transform
                     temp = {key: dict[key][ii] for key in keys}
                     # Obtain the serialized example
                     ex = self.__func_serialize(temp)
@@ -598,23 +601,12 @@ class Prep_Data:
 
     def write_metadata_process(self):
         """Write metadata into a file."""
-        self.metadata = {}
-        # self.metadata['Version'] = self.version
-        self.metadata['w'] = self.w
-        self.metadata['s'] = self.s
-        self.metadata['Max per class'] = self.max_L
-        self.metadata['Min per class'] = self.min_L
-        self.metadata['Max points per lc'] = self.max_N
-        self.metadata['Min points per lc'] = self.min_N
-        self.metadata['Number of classes'] = self.num_classes
-        self.metadata['Train fraction'] = self.train_size
-        self.metadata['Test fraction'] = self.test_size
-        self.metadata['Val fraction'] = self.val_size
-        self.metadata['Classes Info'] = self.splits_metadata
-        self.metadata['Number of bands'] = self.n_bands
-        # self.metadata['info'] = self.info
-        self.metadata['Physical_parameters'] = self.params_phys
-        self.metadata['Physical_parameters_est'] = self.params_phys_est
+        self.metadata = {'w': self.w, 's': self.s, 'Max per class': self.max_L, 'Min per class': self.min_L,
+                         'Max points per lc': self.max_N, 'Min points per lc': self.min_N,
+                         'Number of classes': self.num_classes, 'Train fraction': self.train_size,
+                         'Test fraction': self.test_size, 'Val fraction': self.val_size,
+                         'Classes Info': self.splits_metadata, 'Number of bands': self.n_bands,
+                         'Physical_parameters': self.params_phys, 'Physical_parameters_est': self.params_phys_est}
 
         path = self.save_dir + 'metadata_preprocess.json'
         with open(path, 'w') as fp:
@@ -631,7 +623,7 @@ class Prep_Data:
         return hist
 
     def get_metadata_split(self):
-        """Get the metadata of each splits."""
+        """Get the metadata of each split."""
 
         splits_labels = [
             self.dict_train['Label'],
