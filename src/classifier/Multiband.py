@@ -263,8 +263,8 @@ class Network(Multiband.Network):
 
         # Everything masked is self.mask_value
         apply_masks = ApplyMask(self.num_classes,
-                               mask_value=self.mask_value,
-                               name='Class')
+                                mask_value=self.mask_value,
+                                name='Class')
         masked_prediction_central = apply_masks(prediction_central, n_central)
 
         # Get last prediction
@@ -292,9 +292,9 @@ class Network(Multiband.Network):
                 output = tf.keras.activations.relu(output)
 
             last_phys[param] = tf.keras.layers.Dense(1,
-                                                    activation=None,
-                                                    use_bias=True,
-                                                    name='Pred_' + param)(output)
+                                                     activation=None,
+                                                     use_bias=True,
+                                                     name='Pred_' + param)(output)
 
         self.outputs_end = {
             'Class': masked_prediction_central,
@@ -672,12 +672,33 @@ class Network(Multiband.Network):
         # Build the models
         self.__add_models()
         # Load weights
-        self.load_weights_v2(path_weights)
+        self.load_weights(path_weights)
         # Evaluate on the test set
         self.test_loop(print_report=self.print_report)
         # Save the results if chosen
         self.save_results(df_paths)
-
+    def run_test_test(self, path_parameters, path_records_test, path_weights, df_paths=None):
+        # Read the parameters
+        self.load_setup(path_parameters)
+        # Load scalers
+        if 'regression' in self.mode:
+            # Load the scalers
+            with open(self.path_scalers, 'rb') as file:
+                self.scalers = pickle.load(file)
+        # Initialize dataset
+        self.__initialize_dataset_test(path_records_test)
+        # Define the input shapes
+        self.__define_inputs_test()
+        # Add placeholders
+        self.__add_placeholders()
+        # Build the models
+        self.__add_models()
+        # Load weights
+        self.load_weights(path_weights)
+        # # Evaluate on the test set
+        # self.test_loop(print_report=self.print_report)
+        # # Save the results if chosen
+        # self.save_results(df_paths)
     def load_setup(self, path):
         with open(path) as f:
             all_metadata = json.load(f)
@@ -717,10 +738,10 @@ class Network(Multiband.Network):
         self.numpy_weights = np.array(all_metadata['numpy_weights'])
         self.class_weights = all_metadata['class_weights']
         self.vector_weights = tf.constant(self.numpy_weights, dtype=tf.float32)
-        self.max_L = all_metadata['max_l']
-        self.min_L = all_metadata['min_l']
+        self.max_l = all_metadata['max_l']
+        self.min_l = all_metadata['min_l']
         self.max_N = all_metadata['max_n']
-        self.min_N = all_metadata['min_n']
+        self.min_n = all_metadata['min_n']
         self.N_skip = all_metadata['N_skip']
         self.use_raw_input_central = all_metadata['use_raw_input_central']
         self.train_steps_central = all_metadata['train_steps_central']
@@ -777,10 +798,10 @@ class Network(Multiband.Network):
         self.all_metadata['numpy_weights'] = list(self.numpy_weights)
         self.all_metadata['class_weights'] = self.class_weights
 
-        self.all_metadata['max_l'] = self.max_L
-        self.all_metadata['min_l'] = self.min_L
+        self.all_metadata['max_l'] = self.max_l
+        self.all_metadata['min_l'] = self.min_l
         self.all_metadata['max_n'] = self.max_N
-        self.all_metadata['min_n'] = self.min_N
+        self.all_metadata['min_n'] = self.min_n
 
         self.all_metadata['N_skip'] = self.N_skip
         self.all_metadata['use_raw_input_central'] = self.use_raw_input_central
@@ -810,24 +831,11 @@ class Network(Multiband.Network):
             self.models[b].save_weights(self.model_dir + '/model_' + bb)
         self.model_central.save_weights(self.model_dir + '/model_central')
 
-    def load_weights(self):
-        for b in range(self.n_bands):
-            bb = str(b)
-            self.models[b].load_weights(self.model_dir + '/model_' + bb)
-        self.model_central.load_weights(self.model_dir + '/model_central')
-
-    def load_weights_v2(self, models_path):
+    def load_weights(self, models_path):
         for b in range(self.n_bands):
             bb = str(b)
             self.models[b].load_weights(models_path + '/model_' + bb)
         self.model_central.load_weights(models_path + '/model_central')
-
-    def plot_matrix(self, survey):
-
-        plot.plot_confusion_matrix3(self.test_results['Class'],
-                                    self.test_results['Prediction'],
-                                    normalize=True,
-                                    survey=survey)
 
     def __initialize_dataset_test(self, filename_test):
         loader = Parser.Parser(physical_parameters=self.physical_params,

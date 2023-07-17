@@ -19,10 +19,10 @@ class Network:
             self.w = int(2 * self.w)
             self.s = int(metadata['s'])
             self.n_bands = int(metadata['Number of bands'])
-            self.max_L = int(metadata['Max per class'])
-            self.min_L = int(metadata['Min per class'])
+            self.max_l = int(metadata['Max per class'])
+            self.min_l = int(metadata['Min per class'])
             self.max_N = int(metadata['Max points per lc'])
-            self.min_N = int(metadata['Min points per lc'])
+            self.min_n = int(metadata['Min points per lc'])
             self.num_classes = int(metadata['Number of classes'])
 
             trans = metadata['Classes Info']['Keys']
@@ -136,10 +136,10 @@ class Network:
         self.metadata['Physical_parameters'] = self.physical_params
         self.metadata['mode'] = self.mode
 
-        self.metadata['Max per class'] = self.max_L
-        self.metadata['Min per class'] = self.min_L
+        self.metadata['Max per class'] = self.max_l
+        self.metadata['Min per class'] = self.min_l
         self.metadata['Max points per lc'] = self.max_N
-        self.metadata['Min points per lc'] = self.min_N
+        self.metadata['Min points per lc'] = self.min_n
 
         class_keys = self.trans
         keys = [str(k) for k in class_keys.keys()]

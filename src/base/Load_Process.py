@@ -34,11 +34,11 @@ class prepData:
         self.save_dir = None
         self.lc_parameters = None
         self.num_classes = None
-        self.max_L = max_l
-        self.min_L = min_l
+        self.max_l = max_l
+        self.min_l = min_l
 
         # Impose a minimum of points per light curve per band
-        self.min_N = min_n
+        self.min_n = min_n
         self.max_N = max_n
 
         # Container for the data
@@ -172,7 +172,7 @@ class prepData:
         # Objects that fulfill the number of datapoints condition
         bols = np.ones((data.shape[0], len(self.band_names)), dtype=np.bool)
         for i in range(len(self.band_names)):
-            bols[:, i] = data['N_' + self.band_names[i]] > self.min_N
+            bols[:, i] = data['N_' + self.band_names[i]] > self.min_n
         bol = bols.sum(axis=1) == len(self.band_names)
         data = data[bol]
 
@@ -184,7 +184,7 @@ class prepData:
             sel = data[bol]
 
             # Limit the minimum number of light curves
-            if sel.shape[0] < self.min_L:
+            if sel.shape[0] < self.min_l:
                 # Update the classes
                 self.classes.remove(i)
                 self.num_classes = len(self.classes)
@@ -192,7 +192,7 @@ class prepData:
                 continue
 
             # Return the min among the number of objects and max_l
-            num = min(self.max_L, sel.shape[0])
+            num = min(self.max_l, sel.shape[0])
             # Get a random sample
             sel = sel.sample(num, replace=False, axis=0)
             dfs.append(sel)
@@ -601,8 +601,8 @@ class prepData:
 
     def write_metadata_process(self):
         """Write metadata into a file."""
-        self.metadata = {'w': self.w, 's': self.s, 'Max per class': self.max_L, 'Min per class': self.min_L,
-                         'Max points per lc': self.max_N, 'Min points per lc': self.min_N,
+        self.metadata = {'w': self.w, 's': self.s, 'Max per class': self.max_l, 'Min per class': self.min_l,
+                         'Max points per lc': self.max_N, 'Min points per lc': self.min_n,
                          'Number of classes': self.num_classes, 'Train fraction': self.train_size,
                          'Test fraction': self.test_size, 'Val fraction': self.val_size,
                          'Classes Info': self.splits_metadata, 'Number of bands': self.n_bands,
