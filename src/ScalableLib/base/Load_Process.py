@@ -2,11 +2,11 @@ import os
 import pickle
 from json import dump
 
-import base.Utils as utils
+import ScalableLib.base.Utils as utils
 import numpy as np
 import pandas as pd
 import tensorflow as tf
-from classifier.CustomScalers import ParamPhysScaler
+from ScalableLib.classifier.CustomScalers import ParamPhysScaler
 from joblib import Parallel, delayed
 from numpy.random import shuffle
 from sklearn.model_selection import train_test_split
