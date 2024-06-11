@@ -9,7 +9,7 @@ import ScalableLib.base.Parser as Parser
 import ScalableLib.base.plot as plot
 import numpy as np
 import tensorflow as tf
-import tensorflow_addons as tfa
+#import tensorflow_addons as tfa
 from ScalableLib.classifier.CustomLayers import *
 from ScalableLib.classifier.CustomLosses import *
 from ScalableLib.classifier.CustomMetrics import *
@@ -886,7 +886,7 @@ class Network(Multiband.Network):
                                                                      staircase=False)
         # Specify which optimizer to use
         if optimizer == 'AdamW':
-            optim = tfa.optimizers.AdamW(learning_rate=lr_schedule,
+            optim = tf.keras..optimizers.AdamW(learning_rate=lr_schedule,
                                          weight_decay=1e-4,
                                          )
         else:
