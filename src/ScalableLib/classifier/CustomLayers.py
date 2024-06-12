@@ -416,7 +416,6 @@ class ApplyMask(tf.keras.layers.Layer):
         self.supports_masking = True
         self.mask_value = mask_value
 
-    # @tf.function( experimental_relax_shapes=True)
     def call(self, inputs, N):
         masks = tf.sequence_mask(N)
         masks = tf.cast(masks, tf.float32)  # MAsk to float.
@@ -447,7 +446,7 @@ class InputCentral(tf.keras.layers.Layer):
         # self.num_classes = num_classes
         self.supports_masking = True
 
-    @tf.function(experimental_relax_shapes=True)
+    @tf.function(reduce_retracing=True)
     def sort_states(self, tensor_test, indices):
         """Sort tensor_test given the order in indices"""
         shapes = tf.shape(tensor_test, name='Get_shapes')
