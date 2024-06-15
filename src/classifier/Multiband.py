@@ -9,7 +9,7 @@ import base.Parser as Parser
 import base.plot as plot
 import numpy as np
 import tensorflow as tf
-import tensorflow_addons as tfa
+#import tensorflow_addons as tfa
 from classifier.CustomLayers import *
 from classifier.CustomLosses import *
 from classifier.CustomMetrics import *
@@ -677,6 +677,7 @@ class Network(Multiband.Network):
         self.test_loop(print_report=self.print_report)
         # Save the results if chosen
         self.save_results(df_paths)
+        
     def run_test_test(self, path_parameters, path_records_test, path_weights, df_paths=None):
         # Read the parameters
         self.load_setup(path_parameters)
