@@ -3,11 +3,11 @@ import sys
 import tensorflow as tf
 from glob import glob
 import os
-sys.path.append('../')
-sys.path.append('./../src/')
+# sys.path.append('../')
+# sys.path.append('./../src/')
 
-import classifier.Multiband as multiband
-import base.plot as plot
+import ScalableLib.classifier.Multiband as multiband
+import ScalableLib.base.plot as plot
 
 # To reset cuda
 # sudo rmmod nvidia_uvm

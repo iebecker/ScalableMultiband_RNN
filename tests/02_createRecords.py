@@ -2,8 +2,8 @@ import os
 import sys
 from glob import glob
 
-sys.path.append('../src/')
-import base.Load_Process as Load_Process
+# sys.path.append('../src/')
+import ScalableLib.base.Load_Process as Load_Process
 
 survey = 'Gaia'
 path_folds = os.path.join('./Folds/*')

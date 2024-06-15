@@ -3,10 +3,10 @@ import tensorflow as tf
 import os
 from glob import glob
 
-sys.path.append('../')
-sys.path.append('./../src')
+# sys.path.append('../')
+# sys.path.append('./../src')
 
-import classifier.Multiband as multiband
+import ScalableLib.classifier.Multiband as multiband
 
 # To see if the system recognises the GPU
 device = 1
