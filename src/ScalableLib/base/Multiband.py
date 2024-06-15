@@ -1,9 +1,9 @@
 import json
-import numpy as np
 import os
+
 import tensorflow as tf
 from datetime import datetime
-
+import numpy as np
 
 class Network:
     def __init__(self):

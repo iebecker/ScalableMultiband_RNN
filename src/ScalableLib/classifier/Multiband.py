@@ -18,11 +18,11 @@ from pandas import DataFrame
 from sklearn.metrics import classification_report, r2_score, mean_squared_error
 from tensorflow.keras.callbacks import EarlyStopping
 
-from ScalableLib.classifier.CustomLayers import MeanMagLayer, RawTimesLayer, RNNLayersBands, SauceLayer, ApplyMask, \
-    InputCentral, MeanColorLayer, AllTimes, RNNLayersCentral, LastRelevantLayer
-from ScalableLib.classifier.CustomLosses import CrossEntropy_FullWeights, MSE_masked
-from ScalableLib.classifier.CustomMetrics import CustomAccuracy, CustomTopKAccuracy, CustomFinalAccuracy, \
-    CustomTopKFinalAccuracy, CustomFinalF1Score, Masked_RMSE, Masked_R2
+#from ScalableLib.classifier.CustomLayers import MeanMagLayer, RawTimesLayer, RNNLayersBands, SauceLayer, ApplyMask, \
+#    InputCentral, MeanColorLayer, AllTimes, RNNLayersCentral, LastRelevantLayer
+#from ScalableLib.classifier.CustomLosses import CrossEntropy_FullWeights, MSE_masked
+#from ScalableLib.classifier.CustomMetrics import CustomAccuracy, CustomTopKAccuracy, CustomFinalAccuracy, \
+#    CustomTopKFinalAccuracy, CustomFinalF1Score, Masked_RMSE, Masked_R2
 
 
 class Network(Multiband.Network):
@@ -379,6 +379,7 @@ class Network(Multiband.Network):
         # Load scalers
         if 'regression' in self.mode:
             # Load the scalers
+            # TODO: Change the exportimg method to be a readable file, not a direct pickle.
             with open(self.path_scalers, 'rb') as file:
                 self.scalers = pickle.load(file)
 

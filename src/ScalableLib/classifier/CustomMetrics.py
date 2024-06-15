@@ -184,7 +184,7 @@ class CustomTopKFinalAccuracy(tf.keras.metrics.Metric):
         relevant = tf.gather(flat, index)
         return relevant
 
-    @tf.function(experimental_relax_shapes=True)
+    @tf.function(reduce_retracing=True)
     def compute_topk(self, y_true, y_pred, k=5):
         # Boolean mask
         mask = tf.greater(y_pred, self.mask_value + 1)[:, :, 0]
@@ -242,7 +242,7 @@ class CustomFinalAccuracy(tf.keras.metrics.Metric):
         relevant = tf.gather(flat, index)
         return relevant
 
-    @tf.function(experimental_relax_shapes=True)
+    @tf.function(reduce_retracing=True)
     def compute_acc(self, y_true, y_pred):
         y_true = tf.cast(y_true, tf.float32)
         # Boolean mask
@@ -293,7 +293,7 @@ class CustomAccuracy(tf.keras.metrics.Metric):
     def result(self):
         return self.total_acc
 
-    @tf.function(experimental_relax_shapes=True)
+    @tf.function(reduce_retracing=True)
     def compute_acc(self, y_true, y_pred):
         N_skip = self.N_skip
         y_true = tf.cast(y_true, tf.float32)
@@ -362,7 +362,7 @@ class CustomTopKAccuracy(tf.keras.metrics.Metric):
     def result(self):
         return self.total_topk
 
-    @tf.function(experimental_relax_shapes=True)
+    @tf.function(reduce_retracing=True)
     def compute_topk(self, y_true, y_pred, k=5):
         N_skip = self.N_skip
         # Boolean mask
