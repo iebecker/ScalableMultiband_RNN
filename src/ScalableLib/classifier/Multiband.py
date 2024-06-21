@@ -4,25 +4,28 @@ import os
 import pickle
 from typing import Union, List, Any
 
-import ScalableLib.base.Multiband as Multiband
-import ScalableLib.base.Parser as Parser
-import ScalableLib.base.plot as plot
+
 import numpy as np
 import tensorflow as tf
-
-from ScalableLib.classifier.CustomLayers import *
-from ScalableLib.classifier.CustomLosses import *
-from ScalableLib.classifier.CustomMetrics import *
-from ScalableLib.classifier.CustomModels import CustomModelBand, CustomModelCentral
 from pandas import DataFrame
 from sklearn.metrics import classification_report, r2_score, mean_squared_error
 from tensorflow.keras.callbacks import EarlyStopping
+#import tensorflow_addons as tfa
+from classifier.CustomLayers import *
+from classifier.CustomLosses import *
+from classifier.CustomMetrics import *
+from classifier.CustomScalers import ParamPhysScaler
+from classifier.CustomModels import CustomModelBand, CustomModelCentral
+import base.Multiband as Multiband
+import base.Parser as Parser
+import base.plot as plot
 
-#from ScalableLib.classifier.CustomLayers import MeanMagLayer, RawTimesLayer, RNNLayersBands, SauceLayer, ApplyMask, \
-#    InputCentral, MeanColorLayer, AllTimes, RNNLayersCentral, LastRelevantLayer
-#from ScalableLib.classifier.CustomLosses import CrossEntropy_FullWeights, MSE_masked
-#from ScalableLib.classifier.CustomMetrics import CustomAccuracy, CustomTopKAccuracy, CustomFinalAccuracy, \
-#    CustomTopKFinalAccuracy, CustomFinalF1Score, Masked_RMSE, Masked_R2
+
+from src.classifier.CustomLayers import MeanMagLayer, RawTimesLayer, RNNLayersBands, SauceLayer, ApplyMask, \
+    InputCentral, MeanColorLayer, AllTimes, RNNLayersCentral, LastRelevantLayer
+from src.classifier.CustomLosses import CrossEntropy_FullWeights, MSE_masked
+from src.classifier.CustomMetrics import CustomAccuracy, CustomTopKAccuracy, CustomFinalAccuracy, \
+    CustomTopKFinalAccuracy, CustomFinalF1Score, Masked_RMSE, Masked_R2
 
 
 class Network(Multiband.Network):
@@ -375,17 +378,16 @@ class Network(Multiband.Network):
         self.__add_model_central()
 
     def train(self, train_args, tfrecords_train, tfrecords_val, tfrecords_test):
+
         self.set_train_settings(train_args)
+        self.__add_placeholders()
         # Load scalers
         if 'regression' in self.mode:
             # Load the scalers
-            # TODO: Change the exportimg method to be a readable file, not a direct pickle.
-            with open(self.path_scalers, 'rb') as file:
-                self.scalers = pickle.load(file)
+            self.load_scalers()
 
         self.__initialize_datasets(tfrecords_train, tfrecords_val, tfrecords_test)
         self.__define_inputs()
-        self.__add_placeholders()
         self.__add_writers()
         self.__add_models()
         self.__add_callbacks()
@@ -657,19 +659,19 @@ class Network(Multiband.Network):
             )
 
     def run_test(self, path_parameters, path_records_test, path_weights, df_paths=None):
+        # Add placeholders
+        self.__add_placeholders()
         # Read the parameters
         self.load_setup(path_parameters)
         # Load scalers
         if 'regression' in self.mode:
             # Load the scalers
-            with open(self.path_scalers, 'rb') as file:
-                self.scalers = pickle.load(file)
+            self.load_scalers()
         # Initialize dataset
         self.__initialize_dataset_test(path_records_test)
         # Define the input shapes
         self.__define_inputs_test()
-        # Add placeholders
-        self.__add_placeholders()
+
         # Build the models
         self.__add_models()
         # Load weights
@@ -678,28 +680,18 @@ class Network(Multiband.Network):
         self.test_loop(print_report=self.print_report)
         # Save the results if chosen
         self.save_results(df_paths)
-    def run_test_test(self, path_parameters, path_records_test, path_weights, df_paths=None):
-        # Read the parameters
-        self.load_setup(path_parameters)
-        # Load scalers
-        if 'regression' in self.mode:
-            # Load the scalers
-            with open(self.path_scalers, 'rb') as file:
-                self.scalers = pickle.load(file)
-        # Initialize dataset
-        self.__initialize_dataset_test(path_records_test)
-        # Define the input shapes
-        self.__define_inputs_test()
-        # Add placeholders
-        self.__add_placeholders()
-        # Build the models
-        self.__add_models()
-        # Load weights
-        self.load_weights(path_weights)
-        # # Evaluate on the test set
-        # self.test_loop(print_report=self.print_report)
-        # # Save the results if chosen
-        # self.save_results(df_paths)
+
+    def load_scalers(self)->None:
+        """Initialize and load the scalers parameters for the regression"""
+        # Scalers property is initialized as an empty dictionary 
+        self.scalers = {}
+        # Iterate over the physical parameters of the model
+        for param in self.physical_params:
+            # Initialize each scaler
+            self.scalers[param] = ParamPhysScaler(param, self.mask_value)
+            # Call the method to load the scaler.
+            self.scalers[param].load_scaler(self.path_scalers)
+
     def load_setup(self, path):
         with open(path) as f:
             all_metadata = json.load(f)
@@ -887,7 +879,7 @@ class Network(Multiband.Network):
                                                                      staircase=False)
         # Specify which optimizer to use
         if optimizer == 'AdamW':
-            optim = tf.keras.optimizers.AdamW(learning_rate=lr_schedule,
+            optim = tfa.optimizers.AdamW(learning_rate=lr_schedule,
                                          weight_decay=1e-4,
                                          )
         else:

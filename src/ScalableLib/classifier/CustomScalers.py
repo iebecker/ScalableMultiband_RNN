@@ -1,8 +1,16 @@
+from os.path import join
+import json
+
 import numpy as np
 
 
 class ParamPhysScaler:
-
+    """
+    Class that wraps the methods to fit, apply and inverse apply the 
+    scalers for the physical parameters T_eff, mass, lum, rho and radius.
+    Each variable is hardcoded, as the normalization was achieved by visually
+    inspecting the distributions.
+    """
     def __init__(self,
                  param,
                  mask_value=0):
@@ -28,6 +36,21 @@ class ParamPhysScaler:
         x = np.multiply(x_trans, self.std) + self.mean
         return x
 
+    def __load_teff(self, path_scaler: str)->None:
+        """
+        Load the scalers for effective temperature T_eff.
+        
+        Inputs:
+        path_scaler: Path to the json file
+        """
+        # Open the file and assign the data to scaler_data object
+        with open(path_scaler, 'r') as file:
+            scaler_data = json.load(file)
+
+        # Assign the stored elements to the corresponding properties
+        self.mean = scaler_data['mean']
+        self.std = scaler_data['std']
+
     def __transform_lum(self, x):
         x_trans = np.log10(x + 0.01) + 4.0
         return x_trans
@@ -36,6 +59,19 @@ class ParamPhysScaler:
         x_trans = np.asarray(x_trans)
         x = np.power(10.0, x_trans - 4.0) - 0.01
         return x
+
+    def __load_lum(self, path_scaler: str)->None:
+        """
+        Load the scalers for lum.
+        
+        Inputs:
+        path_scaler: Path to the json file
+        """
+        # Open the file and assign the data to scaler_data object
+        #with open(path_scaler, 'r') as file:
+        #    scaler_data = json.load(file)
+
+        # No files are needed
 
     def __transform_mass(self, X):
         x_trans = X
@@ -46,6 +82,19 @@ class ParamPhysScaler:
         x = x_trans
         return x
 
+    def __load_mass(self, path_scaler: str)->None:
+        """
+        Load the scalers for mass.
+        
+        Inputs:
+        path_scaler: Path to the json file
+        """
+        # Open the file and assign the data to scaler_data object
+        #with open(path_scaler, 'r') as file:
+        #    scaler_data = json.load(file)
+
+        # No files are needed
+
     def __transform_rho(self, X):
         x_trans = np.log10(X + 0.01) + 3.0
         return x_trans
@@ -55,6 +104,19 @@ class ParamPhysScaler:
         x = np.power(10.0, x_trans - 3.0) - 0.01
         return x
 
+    def __load_rho(self, path_scaler: str)->None:
+        """
+        Load the scalers for rho.
+        
+        Inputs:
+        path_scaler: Path to the json file
+        """
+        # Open the file and assign the data to scaler_data object
+        #with open(path_scaler, 'r') as file:
+        #    scaler_data = json.load(file)
+
+        # No files are needed
+
     def __transform_logg(self, x):
         x_trans = x
         return x_trans
@@ -63,6 +125,19 @@ class ParamPhysScaler:
         x_trans = np.asarray(x_trans)
         x = x_trans
         return x
+    
+    def __load_logg(self, path_scaler: str)->None:
+        """
+        Load the scalers for logg.
+        
+        Inputs:
+        path_scaler: Path to the json file
+        """
+        # Open the file and assign the data to scaler_data object
+        #with open(path_scaler, 'r') as file:
+        #    scaler_data = json.load(file)
+
+        # No files are needed
 
     def __transform_radius(self, X):
         self.mean = np.mean(X)
@@ -74,6 +149,21 @@ class ParamPhysScaler:
         x_trans = np.asarray(x_trans)
         x = np.multiply(x_trans, self.std) + self.mean
         return x
+
+    def __load_radius(self, path_scaler: str)->None:
+        """
+        Load the scalers for radius
+        
+        Inputs:
+        path_scaler: Path to the json file
+        """
+        # Open the file and assign the data to scaler_data object
+        with open(path_scaler, 'r') as file:
+            scaler_data = json.load(file)
+
+        # Assign the stored elements to the corresponding properties
+        self.mean = scaler_data['mean']
+        self.std = scaler_data['std']
 
     def fit(self, x):
         pass
@@ -98,15 +188,6 @@ class ParamPhysScaler:
         x_trans = self.__apply_mask(x_trans)
         return x_trans
 
-    def __apply_mask(self, x_trans):
-        x_trans = np.where(self.mask, x_trans, self.mask_value)
-        return x_trans
-
-    def __apply_inverse_mask(self, x):
-        b = x > self.mask_value + 1
-        x = np.where(b, x, -1.0)
-        return x
-
     def inverse_transform(self, x_trans):
         if self.param == 'T_eff':
             x = self.__inverse_transform_teff(x_trans)
@@ -125,3 +206,37 @@ class ParamPhysScaler:
         x = self.__apply_inverse_mask(x)
 
         return x
+
+    def load_scaler(self, path_folder_scalers:str)->None:
+        """
+        Method to call the loader of each individual physical parameter.
+        
+        Inputs:
+        scalers_path_folder: Path to the folder containing each individual scaler.
+        """
+        # Define the path to the specific json file
+        path_scaler=join(path_folder_scalers, '.'.join([self.param, 'json']))
+        # Load each scaler 
+        if self.param == 'T_eff':
+            self.__load_teff(path_scaler)
+        if self.param == 'Lum':
+            x = self.__load_lum(path_scaler)
+        if self.param == 'rho':
+            x = self.__load_rho(path_scaler)
+        if self.param == 'Mass':
+            x = self.__load_mass(path_scaler)
+        if self.param == 'logg':
+            x = self.__load_logg(path_scaler)
+        if self.param == 'Radius':
+            x = self.__load_radius(path_scaler)
+
+
+    def __apply_mask(self, x_trans):
+        x_trans = np.where(self.mask, x_trans, self.mask_value)
+        return x_trans
+
+    def __apply_inverse_mask(self, x):
+        b = x > self.mask_value + 1
+        x = np.where(b, x, -1.0)
+        return x
+
