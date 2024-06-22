@@ -1,3 +1,5 @@
+from typing import List, Any, Optional
+
 import tensorflow as tf
 
 
@@ -102,7 +104,7 @@ class CustomModelBand(tf.keras.Model):
 
 
 class CustomModelCentral(tf.keras.Model):
-    def __init__(self, n_bands, N_skip, target_phys:List=None, **kwargs):
+    def __init__(self, n_bands, N_skip, target_phys:Optional[List[Any]]=None, **kwargs):
         super(CustomModelCentral, self).__init__(**kwargs)
         # self.input_signature = signature
         # self.train_step = tf.function(self.train_step_temp, input_signature=self.input_signature)
