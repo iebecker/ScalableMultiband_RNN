@@ -89,7 +89,7 @@ class MeanColorLayer(tf.keras.layers.Layer):
         updates = tf.concat([u1, u2], axis=0)
 
         # Compute the shape #combinations x bands
-        shape = tf.concat([tf.shape(v1)[0], NN], axis=0)
+        shape = tf.stack([tf.shape(v1)[0], NN], axis=0)
         shape = tf.cast(shape, tf.int64)
 
         # Obtain the matrix
