@@ -81,7 +81,7 @@ class CustomModelBand(tf.keras.Model):
 
         return normed_weights
 
-    def train_step_temp(self, input_, target_):
+    def train_step(self, input_, target_):
         """Function that trains a band-specific model"""
 
         sample_weight_ = self.compute_weights(input_['U_' + self.model_number])
