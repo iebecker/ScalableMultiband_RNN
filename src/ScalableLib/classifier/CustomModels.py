@@ -37,17 +37,19 @@ class CustomModelPhysParams(tf.keras.Model):
 
 
 class CustomModelBand(tf.keras.Model):
-    def __init__(self, signature, N_skip, **kwargs):
+    def __init__(self, N_skip, **kwargs):
         super(CustomModelBand, self).__init__(**kwargs)
-        self.input_signature = signature
+        # self.input_signature = signature
 
-        self.train_step = tf.function(self.train_step_temp, input_signature=self.input_signature)
+        # self.train_step = tf.function(self.train_step_temp, input_signature=self.input_signature)
         self.model_number = kwargs['name'].split('_')[1]
         self.kwargs = kwargs
         self.N_skip = N_skip
 
     def get_config(self):
-        config = {"input_signature": self.input_signature, "model_number": self.model_number,
+        config = {
+                # "input_signature": self.input_signature,
+                   "model_number": self.model_number,
                   "name": self.kwargs['name']}
         return config
 
@@ -100,14 +102,15 @@ class CustomModelBand(tf.keras.Model):
 
 
 class CustomModelCentral(tf.keras.Model):
-    def __init__(self, signature, n_bands, N_skip, **kwargs):
+    def __init__(self, n_bands, N_skip, target_phys:List=None, **kwargs):
         super(CustomModelCentral, self).__init__(**kwargs)
-        self.input_signature = signature
-        self.train_step = tf.function(self.train_step_temp, input_signature=self.input_signature)
+        # self.input_signature = signature
+        # self.train_step = tf.function(self.train_step_temp, input_signature=self.input_signature)
 
-        self.target_phys = list(self.input_signature[1].keys())
-        self.target_phys.remove('FinalClass')
-        self.target_phys.remove('Class')
+        # TODO: Redo the extraction of the phisical parameters, pass them as arguments
+        self.target_phys = target_phys
+        # self.target_phys.remove('FinalClass')
+        # self.target_phys.remove('Class')
 
         self.n_bands = n_bands
         self.N_skip = N_skip
@@ -260,7 +263,8 @@ class CustomModelCentral(tf.keras.Model):
 
         return normed_weights
 
-    def train_step_temp(self, input_, target_):
+    # def train_step_temp(self, input_, target_):
+    def train_step(self, input_, target_):
         """Function that trains a band-specific model"""
 
         with tf.GradientTape() as tape:
@@ -269,7 +273,7 @@ class CustomModelCentral(tf.keras.Model):
             # Here we have the output of the model. Dict in the real case
             predictions = self(input_,
                                training=True)
-            loss_value = self.compiled_loss(y_true=target_,  # ['Class'],
+            loss_value = self.compiled_loss(y_true=target_,  
                                             y_pred=predictions,
                                             sample_weight=sample_weight_
                                             )
