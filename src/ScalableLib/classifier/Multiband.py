@@ -135,7 +135,7 @@ class Network(Multiband.Network):
                                                               mask_value=self.mask_value), ]
                                  }
 
-        self.optimizers[i] = self.__get_optim(self.lr_bands[i], optimizer='AdamW')
+        self.optimizers[i] = self.__get_optimizer(self.lr_bands[i], optimizer='AdamW')
 
         self.models[i].compile(loss=self.loss_functions[i],
                                optimizer=self.optimizers[i],
@@ -332,7 +332,7 @@ class Network(Multiband.Network):
                                                 name='Model_central',
                                                 )
 
-        self.optimizers['Central'] = self.__get_optim(self.lr_central, optimizer='AdamW')
+        self.optimizers['Central'] = self.__get_optimizer(self.lr_central, optimizer='AdamW')
 
         self.loss_functions['Central'] = {
             'Class': CrossEntropy_FullWeights(N_skip=self.N_skip,
@@ -871,7 +871,7 @@ class Network(Multiband.Network):
                                                )
 
     @staticmethod
-    def __get_optim(lr, optimizer='Adam'):
+    def __get_optimizer(lr, optimizer='Adam'):
         # Specify the scheduler
         lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(lr,
                                                                      decay_steps=60,
@@ -879,7 +879,7 @@ class Network(Multiband.Network):
                                                                      staircase=False)
         # Specify which optimizer to use
         if optimizer == 'AdamW':
-            optim = tfa.optimizers.AdamW(learning_rate=lr_schedule,
+            optim = tf.optimizers.AdamW(learning_rate=lr_schedule,
                                          weight_decay=1e-4,
                                          )
         else:
