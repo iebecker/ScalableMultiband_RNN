@@ -1,5 +1,6 @@
-import tensorflow as tf
 from itertools import combinations
+
+import tensorflow as tf
 import numpy as np
 
 
