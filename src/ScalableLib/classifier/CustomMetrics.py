@@ -289,8 +289,8 @@ class CustomAccuracy(tf.keras.metrics.Metric):
 
     def compute_signature(self)->None:
         """Define the input signature for the compute_acc method"""
-        self.signature = (tf.TensorSpec(shape=[None, None, self.num_classes], dtype=tf.float32),
-                            tf.TensorSpec(shape=[None, self.num_classes], dtype=tf.int32)
+        self.signature = (tf.TensorSpec(shape=[None, self.num_classes], dtype=tf.int32),
+                            tf.TensorSpec(shape=[None, None, self.num_classes], dtype=tf.float32)
                         )
     def reset_state(self):
         for s in self.variables:
