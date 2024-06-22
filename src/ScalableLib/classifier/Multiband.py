@@ -436,6 +436,7 @@ class Network(Multiband.Network):
             self.callbacks[b].on_train_begin()
         print('Start training')
         try:
+            # TODO: Enumerate to do the automatic increment of variable batch 
             batch = 0
             # Start the main loop
             for epoch in range(self.epochs):
