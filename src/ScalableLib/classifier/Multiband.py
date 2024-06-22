@@ -105,22 +105,22 @@ class Network(Multiband.Network):
             'RawTimes_' + str(i): raw_times,
         }
 
-        # Define the input and output signature
-        input_sig_0 = {'ID': tf.TensorSpec(shape=(None,), dtype=tf.string)}
-        for bb in range(self.n_bands):
-            input_sig_0['input_LC_' + str(bb)] = tf.TensorSpec(shape=(None, None, self.w), dtype=tf.float32)
-            input_sig_0['O_' + str(bb)] = tf.TensorSpec(shape=(None, None), dtype=tf.int32)
-            input_sig_0['N_' + str(bb)] = tf.TensorSpec(shape=(None,), dtype=tf.int32)
-            input_sig_0['M0_' + str(bb)] = tf.TensorSpec(shape=(None,), dtype=tf.float32)
-            input_sig_0['T0_' + str(bb)] = tf.TensorSpec(shape=(None,), dtype=tf.float32)
-            input_sig_0['U_' + str(bb)] = tf.TensorSpec(shape=(None, None,), dtype=tf.float32)
+        # # Define the input and output signature
+        # input_sig_0 = {'ID': tf.TensorSpec(shape=(None,), dtype=tf.string)}
+        # for bb in range(self.n_bands):
+        #     input_sig_0['input_LC_' + str(bb)] = tf.TensorSpec(shape=(None, None, self.w), dtype=tf.float32)
+        #     input_sig_0['O_' + str(bb)] = tf.TensorSpec(shape=(None, None), dtype=tf.int32)
+        #     input_sig_0['N_' + str(bb)] = tf.TensorSpec(shape=(None,), dtype=tf.int32)
+        #     input_sig_0['M0_' + str(bb)] = tf.TensorSpec(shape=(None,), dtype=tf.float32)
+        #     input_sig_0['T0_' + str(bb)] = tf.TensorSpec(shape=(None,), dtype=tf.float32)
+        #     input_sig_0['U_' + str(bb)] = tf.TensorSpec(shape=(None, None,), dtype=tf.float32)
 
-        input_sig_1 = {'Class': tf.TensorSpec(shape=(None, self.num_classes), dtype=tf.int32)}
+        # input_sig_1 = {'Class': tf.TensorSpec(shape=(None, self.num_classes), dtype=tf.int32)}
 
         self.models[i] = CustomModelBand(inputs=self.inputs,
                                          outputs=self.outputs_[i],
                                          name='Model_' + str(i),
-                                         signature=(input_sig_0, input_sig_1),
+                                        #  signature=(input_sig_0, input_sig_1),
                                          N_skip=self.N_skip,
                                          )
 
@@ -307,26 +307,26 @@ class Network(Multiband.Network):
         for param in self.physical_params:
             self.outputs_end[param] = last_phys[param]
 
-        # Define the input and output signature
+        # # Define the input and output signature
 
-        input_sig_0 = {'ID': tf.TensorSpec(shape=(None,), dtype=tf.string)}
-        for bb in range(self.n_bands):
-            input_sig_0['input_LC_' + str(bb)] = tf.TensorSpec(shape=(None, None, self.w), dtype=tf.float32)
-            input_sig_0['O_' + str(bb)] = tf.TensorSpec(shape=(None, None), dtype=tf.int32)
-            input_sig_0['N_' + str(bb)] = tf.TensorSpec(shape=(None,), dtype=tf.int32)
-            input_sig_0['M0_' + str(bb)] = tf.TensorSpec(shape=(None,), dtype=tf.float32)
-            input_sig_0['T0_' + str(bb)] = tf.TensorSpec(shape=(None,), dtype=tf.float32)
-            input_sig_0['U_' + str(bb)] = tf.TensorSpec(shape=(None, None,), dtype=tf.float32)
+        # input_sig_0 = {'ID': tf.TensorSpec(shape=(None,), dtype=tf.string)}
+        # for bb in range(self.n_bands):
+        #     input_sig_0['input_LC_' + str(bb)] = tf.TensorSpec(shape=(None, None, self.w), dtype=tf.float32)
+        #     input_sig_0['O_' + str(bb)] = tf.TensorSpec(shape=(None, None), dtype=tf.int32)
+        #     input_sig_0['N_' + str(bb)] = tf.TensorSpec(shape=(None,), dtype=tf.int32)
+        #     input_sig_0['M0_' + str(bb)] = tf.TensorSpec(shape=(None,), dtype=tf.float32)
+        #     input_sig_0['T0_' + str(bb)] = tf.TensorSpec(shape=(None,), dtype=tf.float32)
+        #     input_sig_0['U_' + str(bb)] = tf.TensorSpec(shape=(None, None,), dtype=tf.float32)
 
-        input_sig_1 = {'Class': tf.TensorSpec(shape=(None, self.num_classes), dtype=tf.int32),
-                       'FinalClass': tf.TensorSpec(shape=(None, self.num_classes), dtype=tf.int32)
-                       }
-        for param in self.physical_params:
-            input_sig_1[param] = tf.TensorSpec(shape=(None,), dtype=tf.float32)
+        # input_sig_1 = {'Class': tf.TensorSpec(shape=(None, self.num_classes), dtype=tf.int32),
+        #                'FinalClass': tf.TensorSpec(shape=(None, self.num_classes), dtype=tf.int32)
+        #                }
+        # for param in self.physical_params:
+        #     input_sig_1[param] = tf.TensorSpec(shape=(None,), dtype=tf.float32)
 
         self.model_central = CustomModelCentral(inputs=self.inputs_central,
                                                 outputs=self.outputs_end,
-                                                signature=(input_sig_0, input_sig_1),
+                                                # signature=(input_sig_0, input_sig_1),
                                                 n_bands=self.n_bands,
                                                 N_skip=self.N_skip,
                                                 name='Model_central',
