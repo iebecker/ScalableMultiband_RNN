@@ -130,7 +130,11 @@ class Network(Multiband.Network):
                                               ),
         }
 
-        self.train_metrics[i] = {'Class': [CustomAccuracy(name='Acc', N_skip=self.N_skip, mask_value=self.mask_value),
+        self.train_metrics[i] = {'Class': [CustomAccuracy(name='Acc',
+                                                          N_skip=self.N_skip,
+                                                          num_classes=self.num_classes,
+                                                          mask_value=self.mask_value,
+                                                          ),
                                            CustomTopKAccuracy(k=2, name='Top2', N_skip=self.N_skip,
                                                               mask_value=self.mask_value), ]
                                  }

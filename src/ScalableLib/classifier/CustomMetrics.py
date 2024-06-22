@@ -268,12 +268,14 @@ class CustomFinalAccuracy(tf.keras.metrics.Metric):
 
 class CustomAccuracy(tf.keras.metrics.Metric):
     def __init__(self,
-                 N_skip=5,
-                 mask_value=-99.9,
+                 N_skip:int,
+                 num_classes:int,
+                 mask_value:float=-99.9,
                  **kwargs):
         super(CustomAccuracy, self).__init__(**kwargs)
         self.mask_value = mask_value
         self.N_skip = N_skip
+        self.num_classes = num_classes
         self.N = self.add_weight("N_batch", shape=(), initializer="zeros", dtype=tf.float32)
         self.acc = self.add_weight("Batch_Accuracy", shape=(), initializer="zeros", dtype=tf.float32)
         self.total_acc = self.add_weight("Accuracy", shape=(), initializer="zeros", dtype=tf.float32)
@@ -293,7 +295,9 @@ class CustomAccuracy(tf.keras.metrics.Metric):
     def result(self):
         return self.total_acc
 
-    @tf.function(reduce_retracing=True)
+    # @tf.function(reduce_retracing=True)
+    @tf.function(input_signature=(tf.TensorSpec(shape=[None, None, self.num_classes], dtype=tf.float32),
+                                  tf.TensorSpec(shape=[None, self.num_classes], dtype=tf.int32)))
     def compute_acc(self, y_true, y_pred):
         N_skip = self.N_skip
         y_true = tf.cast(y_true, tf.float32)
