@@ -871,7 +871,7 @@ class Network(Multiband.Network):
                                                )
 
     @staticmethod
-    def __get_optimizer(lr, optimizer='Adam'):
+    def __get_optimizer(lr:float, optimizer:str='Adam'):
         # Specify the scheduler
         lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(lr,
                                                                      decay_steps=60,
