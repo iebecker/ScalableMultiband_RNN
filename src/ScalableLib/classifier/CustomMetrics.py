@@ -276,10 +276,22 @@ class CustomAccuracy(tf.keras.metrics.Metric):
         self.mask_value = mask_value
         self.N_skip = N_skip
         self.num_classes = num_classes
+
+        # Wrap the compute_acc function as a tf.function
+        self.compute_signature()
+        self.compute_acc = tf.function(func=self.compute_acc,
+                                       input_signature=self.signature
+                                       )
+
         self.N = self.add_weight("N_batch", shape=(), initializer="zeros", dtype=tf.float32)
         self.acc = self.add_weight("Batch_Accuracy", shape=(), initializer="zeros", dtype=tf.float32)
         self.total_acc = self.add_weight("Accuracy", shape=(), initializer="zeros", dtype=tf.float32)
 
+    def compute_signature(self)->None:
+        """Define the input signature for the compute_acc method"""
+        self.signature = (tf.TensorSpec(shape=[None, None, self.num_classes], dtype=tf.float32),
+                            tf.TensorSpec(shape=[None, self.num_classes], dtype=tf.int32)
+                        )
     def reset_state(self):
         for s in self.variables:
             s.assign(tf.zeros(shape=s.shape))
@@ -296,8 +308,8 @@ class CustomAccuracy(tf.keras.metrics.Metric):
         return self.total_acc
 
     # @tf.function(reduce_retracing=True)
-    @tf.function(input_signature=(tf.TensorSpec(shape=[None, None, self.num_classes], dtype=tf.float32),
-                                  tf.TensorSpec(shape=[None, self.num_classes], dtype=tf.int32)))
+    # @tf.function(input_signature=(tf.TensorSpec(shape=[None, None, self.num_classes], dtype=tf.float32),
+    #                               tf.TensorSpec(shape=[None, self.num_classes], dtype=tf.int32)))
     def compute_acc(self, y_true, y_pred):
         N_skip = self.N_skip
         y_true = tf.cast(y_true, tf.float32)
