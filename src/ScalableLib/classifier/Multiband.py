@@ -348,7 +348,11 @@ class Network(Multiband.Network):
             self.loss_functions['Central'][param] = MSE_masked(mask_value=self.mask_value)
 
         self.train_metrics['Central'] = {
-            'Class': [CustomAccuracy(name='CentralAcc', N_skip=self.N_skip, mask_value=self.mask_value),
+            'Class': [CustomAccuracy(name='CentralAcc',
+                                    N_skip=self.N_skip,
+                                    num_classes=self.num_classes,
+                                    mask_value=self.mask_value,
+                                    ),
                       CustomTopKAccuracy(k=2, name='CentralTop2', N_skip=self.N_skip, mask_value=self.mask_value),
                       CustomFinalAccuracy(name='FinalAcc', mask_value=self.mask_value),
                       CustomTopKFinalAccuracy(k=2, name='FinalTop2', mask_value=self.mask_value),
