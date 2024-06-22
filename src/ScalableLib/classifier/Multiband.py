@@ -578,8 +578,10 @@ class Network(Multiband.Network):
         mask_value = {}  # dict_transform to store the values representing the mask.
         if 'regression' in self.mode:
             # Load the scalers
-            with open(self.path_scalers, 'rb') as file:
-                self.scalers = pickle.load(file)
+            self.load_scalers()    
+            # Load the scalers
+            # with open(self.path_scalers, 'rb') as file:
+            #     self.scalers = pickle.load(file)
             # Transform each column
             self.output_params = {}
             for param in self.physical_params:
