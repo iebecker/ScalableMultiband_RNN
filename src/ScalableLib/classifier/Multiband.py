@@ -10,21 +10,21 @@ import tensorflow as tf
 from pandas import DataFrame
 from sklearn.metrics import classification_report, r2_score, mean_squared_error
 from tensorflow.keras.callbacks import EarlyStopping
-#import tensorflow_addons as tfa
-from classifier.CustomLayers import *
-from classifier.CustomLosses import *
-from classifier.CustomMetrics import *
-from classifier.CustomScalers import ParamPhysScaler
-from classifier.CustomModels import CustomModelBand, CustomModelCentral
-import base.Multiband as Multiband
-import base.Parser as Parser
-import base.plot as plot
+
+from ScalableLib.classifier.CustomLayers import *
+from ScalableLib.classifier.CustomLosses import *
+from ScalableLib.classifier.CustomMetrics import *
+from ScalableLib.classifier.CustomScalers import ParamPhysScaler
+from ScalableLib.classifier.CustomModels import CustomModelBand, CustomModelCentral
+import ScalableLib.base.Multiband as Multiband
+import ScalableLib.base.Parser as Parser
+import ScalableLib.base.plot as plot
 
 
-from src.classifier.CustomLayers import MeanMagLayer, RawTimesLayer, RNNLayersBands, SauceLayer, ApplyMask, \
+from ScalableLib.classifier.CustomLayers import MeanMagLayer, RawTimesLayer, RNNLayersBands, SauceLayer, ApplyMask, \
     InputCentral, MeanColorLayer, AllTimes, RNNLayersCentral, LastRelevantLayer
-from src.classifier.CustomLosses import CrossEntropy_FullWeights, MSE_masked
-from src.classifier.CustomMetrics import CustomAccuracy, CustomTopKAccuracy, CustomFinalAccuracy, \
+from ScalableLib.classifier.CustomLosses import CrossEntropy_FullWeights, MSE_masked
+from ScalableLib.classifier.CustomMetrics import CustomAccuracy, CustomTopKAccuracy, CustomFinalAccuracy, \
     CustomTopKFinalAccuracy, CustomFinalF1Score, Masked_RMSE, Masked_R2
 
 
