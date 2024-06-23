@@ -611,7 +611,9 @@ class Network(Multiband.Network):
         self.test_results = output
 
         if print_report:
-            print(classification_report(self.test_results['Class'], self.test_results['Prediction']))
+            print(classification_report(self.test_results['Class'], self.test_results['Prediction'],
+                                        digits=2, 
+                                        zero_division=0.0))
 
             if 'regression' in self.mode:
                 self.regression_scores = {'R2': {}, 'RMSE': {}}
