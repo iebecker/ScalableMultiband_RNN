@@ -8,7 +8,7 @@ from typing import Union, List, Any
 import numpy as np
 import tensorflow as tf
 from pandas import DataFrame
-from sklearn.metrics import classification_report, r2_score, mean_squared_error
+from sklearn.metrics import classification_report, r2_score, root_mean_squared_error
 from tensorflow.keras.callbacks import EarlyStopping
 
 from ScalableLib.classifier.CustomLayers import *
@@ -622,9 +622,9 @@ class Network(Multiband.Network):
                     # Estimate the metrics using the existint phys params
                     mask = output[param] > mask_value[param] + 1
                     self.regression_scores['R2'][param] = r2_score(output[param][mask], output['Pred_' + param][mask])
-                    self.regression_scores['RMSE'][param] = mean_squared_error(output[param][mask],
+                    self.regression_scores['RMSE'][param] = root_mean_squared_error(output[param][mask],
                                                                                output['Pred_' + param][mask],
-                                                                               squared=False)  # False means RMSE
+                                                                               )
 
                 print(self.regression_scores)
 
