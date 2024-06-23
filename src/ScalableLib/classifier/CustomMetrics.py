@@ -350,25 +350,50 @@ class CustomAccuracy(tf.keras.metrics.Metric):
 
 
 class CustomTopKAccuracy(tf.keras.metrics.Metric):
+    """
+    Class that implements the TopK accuracy on the sequence of predictions, padded with a constant value.
+    """
     def __init__(self,
-                 k=2,
-                 N_skip=5,
-                 mask_value=-99.9,
+                 num_classes:int,
+                 k:int=2,
+                 N_skip:int=5,
+                 mask_value:float=-99.9,
                  **kwargs):
         super(CustomTopKAccuracy, self).__init__(**kwargs)
-        self.mask_value = mask_value
+        """
+        Class to compute the topK accuracy per timestep.
+        Inputs:
+        k: Integer to define the top K. Defaults to 2.
+        N_skip: Integer that defines the number of skipped initial timesteps, since the accuracy there is not relevant. Defaults to 5.
+        mask_value: Float that defines the value of the mask, to ignore those timesteps. Defaults to -99.9.
+
+        """
+        self.num_classes = num_classes
+        self.k = k
         self.N_skip = N_skip
+        self.mask_value = mask_value
+        
+        # Compute the signature and apply it using tf.function to self.compute_topk to avoid retracing
+        self.compute_signature()
+        self.compute_topk = tf.function(func=self.compute_topk,
+                                        input_signature=self.signature
+                                        )
         self.N = self.add_weight("N_batch", shape=(), initializer="zeros", dtype=tf.float32)
         self.topk = self.add_weight("Batch_TopK", shape=(), initializer="zeros", dtype=tf.float32)
         self.total_topk = self.add_weight("TopK", shape=(), initializer="zeros", dtype=tf.float32)
-        self.k = k
+        
+
+    def compute_signature(self)->None:
+        """Define the input signature for the compute_topk method"""
+        self.signature = (tf.TensorSpec(shape=[None, self.num_classes], dtype=tf.int32),
+                            tf.TensorSpec(shape=[None, None, self.num_classes], dtype=tf.float32))
 
     def reset_state(self):
         for s in self.variables:
             s.assign(tf.zeros(shape=s.shape))
 
     def update_state(self, y_true, y_pred, sample_weight=None):
-        topk, N = self.compute_topk(y_true, y_pred, k=self.k)
+        topk, N = self.compute_topk(y_true, y_pred)
         self.N.assign_add(N)
         self.topk.assign_add(topk)
 
@@ -378,9 +403,9 @@ class CustomTopKAccuracy(tf.keras.metrics.Metric):
     def result(self):
         return self.total_topk
 
-    @tf.function(reduce_retracing=True)
-    def compute_topk(self, y_true, y_pred, k=5):
-        N_skip = self.N_skip
+    def compute_topk(self, y_true, y_pred):
+        """Main function that computes the Mean TopK Accuracy."""
+        
         # Boolean mask
         mask = tf.greater(y_pred, self.mask_value + 1)[:, :, 0]
         mask = tf.cast(mask, tf.float32)
@@ -399,14 +424,14 @@ class CustomTopKAccuracy(tf.keras.metrics.Metric):
         true = tf.cast(math_ops.argmax(exp_true, axis=-1), tf.int32)
         pred = exp_pred
 
-        res = nn.in_top_k(pred, true, k)
+        res = nn.in_top_k(pred, true, self.k)
         res = math_ops.cast(res, backend.floatx())
         res = tf.reshape(res, (N_batch, reps))
 
         # All 1 tensor (the ones we want to skip)
-        m11 = tf.ones(shape=(tf.shape(mask)[0], N_skip), dtype=tf.float32)
+        m11 = tf.ones(shape=(tf.shape(mask)[0], self.N_skip), dtype=tf.float32)
         # All ones,( the padding) Note the shape
-        m12 = tf.zeros(shape=(tf.shape(mask)[0], tf.shape(mask)[1] - N_skip), dtype=tf.float32)
+        m12 = tf.zeros(shape=(tf.shape(mask)[0], tf.shape(mask)[1] - self.N_skip), dtype=tf.float32)
         # Concat both tensors along the time dimension
         m1 = tf.concat((m11, m12), axis=1)
         # Substract the first steps to the real mask
@@ -417,6 +442,6 @@ class CustomTopKAccuracy(tf.keras.metrics.Metric):
         # # Compute the sum of accuracy along timesteps
         values = tf.reduce_sum(masked, axis=1)
         # # Divide the accuracy by each sequence length - N_skip
-        values = tf.divide(values, N - N_skip)
+        values = tf.divide(values, N - self.N_skip)
         N_batch = tf.cast(N_batch, tf.float32)
         return tf.reduce_sum(values), N_batch
