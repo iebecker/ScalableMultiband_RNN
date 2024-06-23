@@ -80,7 +80,8 @@ class CustomModelBand(tf.keras.Model):
         normed_weights = tf.math.divide_no_nan(weights, tf.reshape(norm_weights, (-1, 1)))
 
         return normed_weights
-
+    
+    #TODO: Add a input signature to the train_step method to reduce the retracing.
     def train_step(self, input_, target_):
         """Function that trains a band-specific model"""
 
