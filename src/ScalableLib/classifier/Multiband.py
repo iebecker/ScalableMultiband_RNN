@@ -135,7 +135,10 @@ class Network(Multiband.Network):
                                                           num_classes=self.num_classes,
                                                           mask_value=self.mask_value,
                                                           ),
-                                           CustomTopKAccuracy(k=2, name='Top2', N_skip=self.N_skip,
+                                           CustomTopKAccuracy(k=2,
+                                                              num_classes=self.num_classes,
+                                                              name='Top2', 
+                                                              N_skip=self.N_skip,
                                                               mask_value=self.mask_value), ]
                                  }
 
@@ -353,10 +356,19 @@ class Network(Multiband.Network):
                                     num_classes=self.num_classes,
                                     mask_value=self.mask_value,
                                     ),
-                      CustomTopKAccuracy(k=2, name='CentralTop2', N_skip=self.N_skip, mask_value=self.mask_value),
-                      CustomFinalAccuracy(name='FinalAcc', mask_value=self.mask_value),
-                      CustomTopKFinalAccuracy(k=2, name='FinalTop2', mask_value=self.mask_value),
-                      CustomFinalF1Score(self.num_classes, name='Final_FScore', mask_value=self.mask_value)
+                      CustomTopKAccuracy(k=2,
+                                        num_classes=self.num_classes,
+                                        name='CentralTop2', 
+                                        N_skip=self.N_skip, 
+                                        mask_value=self.mask_value),
+                      CustomFinalAccuracy(name='FinalAcc',
+                                          mask_value=self.mask_value),
+                      CustomTopKFinalAccuracy(k=2, 
+                                              name='FinalTop2', 
+                                              mask_value=self.mask_value),
+                      CustomFinalF1Score(self.num_classes, 
+                                         name='Final_FScore', 
+                                         mask_value=self.mask_value)
                       ],
 
         }
