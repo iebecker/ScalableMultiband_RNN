@@ -39,7 +39,7 @@ class prepData:
 
         # Impose a minimum of points per light curve per band
         self.min_n = min_n
-        self.max_N = max_n
+        self.max_n = max_n
 
         # Container for the data
         self.labels = []
@@ -309,7 +309,7 @@ class prepData:
                                                                           self.w,
                                                                           self.s,
                                                                           self.n_bands,
-                                                                          self.max_N,
+                                                                          self.max_n,
                                                                           ) for l in tqdm(sel))
 
             all_processed.append(processed)
@@ -602,7 +602,7 @@ class prepData:
     def write_metadata_process(self):
         """Write metadata into a file."""
         self.metadata = {'w': self.w, 's': self.s, 'Max per class': self.max_l, 'Min per class': self.min_l,
-                         'Max points per lc': self.max_N, 'Min points per lc': self.min_n,
+                         'Max points per lc': self.max_n, 'Min points per lc': self.min_n,
                          'Number of classes': self.num_classes, 'Train fraction': self.train_size,
                          'Test fraction': self.test_size, 'Val fraction': self.val_size,
                          'Classes Info': self.splits_metadata, 'Number of bands': self.n_bands,
