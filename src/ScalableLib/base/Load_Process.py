@@ -557,47 +557,47 @@ class prepData:
                     # Write it to a file
                     writer.write(ex.SerializeToString())
 
-    def shard_serialize_parallel(self,
-                                 dict,
-                                 fold,
-                                 elements_per_shard=5000,
-                                 ):
-        """Serialize objects given the data and path,
-        splitting them into shards."""
-        # Create the folders to store the shards
-        fold_dir = '/'.join([self.save_dir, fold])
-        if not os.path.exists(fold_dir):
-            os.makedirs(fold_dir)
+    # def shard_serialize_parallel(self,
+    #                              dict,
+    #                              fold,
+    #                              elements_per_shard=5000,
+    #                              ):
+    #     """Serialize objects given the data and path,
+    #     splitting them into shards."""
+    #     # Create the folders to store the shards
+    #     fold_dir = '/'.join([self.save_dir, fold])
+    #     if not os.path.exists(fold_dir):
+    #         os.makedirs(fold_dir)
 
-        keys = dict.keys()
+    #     keys = dict.keys()
 
-        # Number of objects in the split
-        N = len(dict['ID'])
-        # Compute the number of shards
-        n_shards = -np.floor_divide(N, -elements_per_shard)
-        # Number of characters of the number of shards
-        name_length = len(str(n_shards))
+    #     # Number of objects in the split
+    #     N = len(dict['ID'])
+    #     # Compute the number of shards
+    #     n_shards = -np.floor_divide(N, -elements_per_shard)
+    #     # Number of characters of the number of shards
+    #     name_length = len(str(n_shards))
 
-        # Create one file per shard
-        shard_paths = []
-        for shard in range(n_shards):
-            # Get the shard number padded with 0s
-            shard_name = str(shard + 1).rjust(name_length, '0')
-            # Get the shard store name
-            shard_name = '_'.join([fold, shard_name, str(n_shards)])
-            # Add the extension
-            shard_name = shard_name + '.tfrecord'
-            # Get the shard save path
-            shard_path = '/'.join([self.save_dir, fold, shard_name])
-            shard_paths.append(shard_path)
+    #     # Create one file per shard
+    #     shard_paths = []
+    #     for shard in range(n_shards):
+    #         # Get the shard number padded with 0s
+    #         shard_name = str(shard + 1).rjust(name_length, '0')
+    #         # Get the shard store name
+    #         shard_name = '_'.join([fold, shard_name, str(n_shards)])
+    #         # Add the extension
+    #         shard_name = shard_name + '.tfrecord'
+    #         # Get the shard save path
+    #         shard_path = '/'.join([self.save_dir, fold, shard_name])
+    #         shard_paths.append(shard_path)
 
-        Parallel(self.njobs, backend='threading')(delayed(aux_serialize)(shard,
-                                                                         shard_path,
-                                                                         elements_per_shard,
-                                                                         list(keys),
-                                                                         N,
-                                                                         dict)
-                                                  for shard, shard_path in tqdm(enumerate(shard_paths)))
+    #     Parallel(self.njobs, backend='threading')(delayed(aux_serialize)(shard,
+    #                                                                      shard_path,
+    #                                                                      elements_per_shard,
+    #                                                                      list(keys),
+    #                                                                      N,
+    #                                                                      dict)
+    #                                               for shard, shard_path in tqdm(enumerate(shard_paths)))
 
     def write_metadata_process(self):
         """Write metadata into a file."""
