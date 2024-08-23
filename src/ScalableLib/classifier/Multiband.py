@@ -866,8 +866,8 @@ class Network(Multiband.Network):
     def load_weights(self, models_path):
         for b in range(self.n_bands):
             bb = str(b)
-            self.models[b].load_weights(models_path + '/model_' + bb)
-        self.model_central.load_weights(models_path + '/model_central')
+            self.models[b].load_weights(models_path + '/model_' + bb).expect_partial()
+        self.model_central.load_weights(models_path + '/model_central').expect_partial()
 
     def __initialize_dataset_test(self, filename_test):
         loader = Parser.Parser(physical_parameters=self.physical_params,
