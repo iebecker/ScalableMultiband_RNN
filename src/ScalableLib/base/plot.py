@@ -89,15 +89,34 @@ def compute_classification_report(path_fold):
     return report
 
 
-def obtain_accumulated_metrics(reports_, metric='mean', label_order=None):
-    reports_np = 100 * np.array(
-        [pd.DataFrame(i)[label_order].loc[['precision', 'recall', 'f1-score', 'support']] for i in reports_])
-    reports_df = [100 * pd.DataFrame(i)[label_order].loc[['precision', 'recall', 'f1-score', 'support']] for i in
-                  reports_]
+def obtain_accumulated_metrics(reports_, metric='median', label_order=None, rounded=True):
+    """
+    Function to create summary statistics of the classification reports obtained by the cross validation of
+    the multiband model.
 
+    Inputs:
+    reports_ (list): List of dictionaries. Each dictionary is the output of sklearn's classification report, using the return_dict flag set to True.
+    metric (str): String to select mean or median metrics. Median by default.
+    label_order (list): List of strings, where each one is a class of the survey.
+
+    Returns:
+    The central and dispersion classification reports. 
+        For metric='mean' returns mean and std values for each metric and class.
+        For metric='median', returns the median, first and third quartiles.
+    """
+    # Transform the reports into a list of dataframes.
+    reports_df = [pd.DataFrame(i)[label_order].loc[['precision', 'recall', 'f1-score', 'support']] for i in
+                  reports_]
+    # # Multiplies by 100 to have percentage, except the support
+    # mult = np.array([100,100,100,1]).reshape(-1,1)
+    # reports_df = [ i*mult for i in reports_df]
+    
+    reports_np = np.array(reports_df)
+    
+    # Extract index and column names to report a single table
     index_ = reports_df[0].index
     columns_ = reports_df[0].columns
-
+    # Get different statistics
     if metric == 'mean':
         summary = np.mean(reports_np, axis=0)
         summary_pos = np.std(reports_np, axis=0)
@@ -105,6 +124,9 @@ def obtain_accumulated_metrics(reports_, metric='mean', label_order=None):
 
         summary = pd.DataFrame(data=summary, index=index_, columns=columns_)
         summary_pos = pd.DataFrame(data=summary_pos, index=index_, columns=columns_)
+        # If rounded=True, return it rounded with 2 decimals.
+        if rounded:
+            summary = summary.round(2)
         return summary, summary_pos
     elif metric == 'median':
         summary = np.median(reports_np, axis=0)
@@ -117,6 +139,9 @@ def obtain_accumulated_metrics(reports_, metric='mean', label_order=None):
         summary = pd.DataFrame(data=summary, index=index_, columns=columns_)
         summary_pos = pd.DataFrame(data=summary_pos, index=index_, columns=columns_)
         summary_neg = pd.DataFrame(data=summary_neg, index=index_, columns=columns_)
+        # If rounded=True, return it rounded with 2 decimals.
+        if rounded:
+            summary = summary.round(2)
         return summary, summary_pos, summary_neg
     else:
         return None
