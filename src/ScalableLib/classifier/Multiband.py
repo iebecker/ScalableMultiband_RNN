@@ -682,20 +682,34 @@ class Network(Multiband.Network):
             ],
                 model=self.models[b],
             )
-
+    def __define_inputs_test(self):
+        # Define the keys from the dataset
+        keys = list(self.dataset_test.element_spec[0].keys())
+        self.inputs = {}
+        self.inputs_central = {}
+        for key in keys:
+            self.inputs[key] = tf.keras.layers.Input(shape=self.dataset_test.element_spec[0][key].shape[1:],
+                                                     dtype=self.dataset_test.element_spec[0][key].dtype,
+                                                     name=key
+                                                     )
+            self.inputs_central[key] = tf.keras.layers.Input(shape=self.dataset_test.element_spec[0][key].shape[1:],
+                                                             dtype=self.dataset_test.element_spec[0][key].dtype,
+                                                             name=key
+                                                             )
     def run_test(self, path_parameters, path_records_test, path_weights, df_paths=None):
-        # Add placeholders
-        self.__add_placeholders()
         # Read the parameters
         self.load_setup(path_parameters)
+        # Add placeholders
+        self.__add_placeholders()
         # Load scalers
         if 'regression' in self.mode:
             # Load the scalers
             self.load_scalers()
         # Initialize dataset
         self.__initialize_dataset_test(path_records_test)
-        # Define the input shapes
+        # Define the input shapes for the test
         self.__define_inputs_test()
+        
 
         # Build the models
         self.__add_models()
