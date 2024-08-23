@@ -219,9 +219,9 @@ def plot_confusion_matrix(cm_folds,
             pos = round(cm_pos[i, j], 1)
             neg = round(cm_neg[i, j], 1)
 
-            super_text = f'${pos}}}$'
+            super_text = f'${pos}$'
             middle = f'${center}$'
-            sub_text = f'${neg}}}$'
+            sub_text = f'${neg}$'
 
             # Small shift in x to accommodate the super/sub scripts
             mid_text = plt.text(j - 0.075, i + 0.075, middle, horizontalalignment="center",
