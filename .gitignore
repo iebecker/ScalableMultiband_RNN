@@ -3,3 +3,9 @@
 
 # Ignore Python cache directories
 __pycache__/
+
+# Ignore tfrecords
+*.tfrecord
+
+# Ignore the folders where the tfrecords are stored.
+**/02_CreateRecords/*/Folds/
