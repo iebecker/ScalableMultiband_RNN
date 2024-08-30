@@ -100,7 +100,9 @@ class Network:
         self.use_raw_input_central = train_args['use_raw_input_central']
         self.train_steps_central = train_args['train_steps_central']
         self.print_report = train_args['print_report']
+        # Define the path to the folder where the scalers are located
         self.path_scalers = train_args['path_scalers']
+        
         self.loss_weights_central = train_args['loss_weights_central']
         self.callbacks_args = train_args['callbacks_args']
 
