@@ -389,6 +389,15 @@ class prepData:
                                                 )
             self.scalers[var].fit(nonzero.values.reshape(-1, 1))
 
+    def save_scalers(self)->None:
+        """Store the scalers using the CustomScalers class"""
+
+        # Define the path of the folder
+        path = os.path.join(self.save_dir, 'scalers')
+        # For each physical apram, save its scaler
+        for param in self.params_phys:
+            self.scalers[param].save_scaler(path_folder_scalers=path)        
+
     def scalers_transform(self, dict_transform):
         # Create a DataFrame to transform the data at once
         df = pd.DataFrame(list(dict_transform['Physical_Values']))
@@ -399,9 +408,7 @@ class prepData:
                                                   ).ravel()
 
         # Save scalers
-        path = self.save_dir + 'scalers.pkl'
-        with open(path, 'wb') as fp:
-            pickle.dump(self.scalers, fp)
+        self.save_scalers()
 
         # Return to the dict_transform representation
         reverse = df.transpose().to_dict()
