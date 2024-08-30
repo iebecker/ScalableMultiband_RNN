@@ -394,6 +394,9 @@ class prepData:
 
         # Define the path of the folder
         path = os.path.join(self.save_dir, 'scalers')
+        # Create the path if already not created
+        if not os.path.exists(path):
+            os.mkdir(path)
         # For each physical apram, save its scaler
         for param in self.params_phys:
             self.scalers[param].save_scaler(path_folder_scalers=path)        
