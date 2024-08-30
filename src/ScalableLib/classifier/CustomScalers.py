@@ -229,7 +229,31 @@ class ParamPhysScaler:
             x = self.__load_logg(path_scaler)
         if self.param == 'Radius':
             x = self.__load_radius(path_scaler)
+    
+    def __save(self, path_scaler:str, scaler:dict)->None:
+        """
+        Save the values for the mean and std of a scaler
+        
+        Inputs:
+        path_scaler (str): Path to the json file
+        scaler (dict): Dictionary containing the mean and std of the scaler.
+        """
+        with open(path_scaler, 'w') as file:
+            json.dump(scaler, file)
 
+    def save_scaler(self, path_folder_scalers:str)->None:
+        """
+        Method to call the saver of each individual physical parameter.
+        
+        Inputs:
+        scalers_path_folder: Path containing the scalers.
+        """
+        # Define the path to the specific json file
+        path_scaler=join(path_folder_scalers, '.'.join([self.param, 'json']))
+        # Define the dictionary to save
+        scaler = {'mean': self.mean, 'std':self.std}
+        # Save the respective scaler
+        self.__save(path_scaler, scaler)
 
     def __apply_mask(self, x_trans):
         x_trans = np.where(self.mask, x_trans, self.mask_value)
