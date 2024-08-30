@@ -246,7 +246,7 @@ class ParamPhysScaler:
         Method to call the saver of each individual physical parameter.
         
         Inputs:
-        scalers_path_folder: Path containing the scalers.
+        scalers_path_folder: Folder containing the scalers.
         """
         # Define the path to the specific json file
         path_scaler=join(path_folder_scalers, '.'.join([self.param, 'json']))
