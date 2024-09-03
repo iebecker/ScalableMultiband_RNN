@@ -1,4 +1,4 @@
-from sklearn.metrics import confusion_matrix, classification_report, r2_score, mean_squared_error, \
+from sklearn.metrics import confusion_matrix, classification_report, r2_score, root_mean_squared_error, \
     mean_absolute_percentage_error
 import numpy as np
 import matplotlib.pyplot as plt
@@ -32,7 +32,7 @@ def compute_regression(path_fold, phys_params):
 
         # Compute masked R2
         masked_r2 = r2_score(masked_true, masked_pred)
-        masked_rmse = mean_squared_error(masked_true, masked_pred, squared=False)
+        masked_rmse = root_mean_squared_error(masked_true, masked_pred)
         masked_MAPE = mean_absolute_percentage_error(masked_true, masked_pred)
         # Compute the percentage error
         param_result = {'R2': masked_r2, 'RMSE': masked_rmse, 'MAPE': masked_MAPE}
