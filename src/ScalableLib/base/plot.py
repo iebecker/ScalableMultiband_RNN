@@ -71,16 +71,6 @@ def obtain_accumulated_regressions(regressions, metric='mean'):
         return None
 
 
-def compute_confussion_matrices(path_fold, labels=None):
-    # Read the output file
-    df = pd.read_csv(path_fold)
-    if labels is None:
-        labels = [new.trans[i] for i in range(new.num_classes)]
-    cm_fold = confusion_matrix(df.Class, df.Pred, labels=labels, normalize='true')
-
-    return cm_fold
-
-
 def compute_classification_report(path_fold):
     # Read the output file
     df = pd.read_csv(path_fold)
