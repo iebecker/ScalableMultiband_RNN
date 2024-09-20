@@ -6,6 +6,25 @@ import itertools
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import pandas as pd
 
+def compute_confussion_matrices(path_fold:str, num_classes:int, trans:dict, labels:list=None, ):
+    """
+    Compute th confussion matrices from the output of the model
+
+    path_fold (str): Contains the path to each results file
+    num_classes (int): Number of classes to consider
+    trans (dict): dictionary to translate number classes into string ones.
+    labels: Labels and their order. Useful to organize the same structure across folds.
+    """
+    # Read the output file
+    df = pd.read_csv(path_fold)
+    if labels is None:
+        labels = [trans[i] for i in range(num_classes)]
+    cm_fold = confusion_matrix(df.Class, df.Pred, labels=labels, normalize='true')
+
+    return cm_fold
+
+
+
 
 def compute_regression(path_fold, phys_params):
     """
