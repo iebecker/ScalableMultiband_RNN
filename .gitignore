@@ -9,3 +9,6 @@ __pycache__/
 
 # Ignore the folders where the tfrecords are stored.
 **/02_CreateRecords/*/Folds/
+
+# Ignore the config of dvc, it contains secrets
+*/.dvc/config
