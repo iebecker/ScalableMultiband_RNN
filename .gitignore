@@ -11,4 +11,4 @@ __pycache__/
 **/02_CreateRecords/*/Folds/
 
 # Ignore the config of dvc, it contains secrets
-*/.dvc/config
+*.dvc/config
