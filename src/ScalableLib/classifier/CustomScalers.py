@@ -24,8 +24,9 @@ class ParamPhysScaler:
         self.min = None
 
     def __transform_teff(self, X):
-        self.mean = np.mean(X)
-        self.std = np.std(X)
+
+        self.mean = np.mean(X[self.mask])
+        self.std = np.std(X[self.mask])
         X_trans = (X - self.mean) / self.std
 
         return X_trans
@@ -139,8 +140,8 @@ class ParamPhysScaler:
         # No files are needed
 
     def __transform_radius(self, X):
-        self.mean = np.mean(X)
-        self.std = np.std(X)
+        self.mean = np.mean(X[self.mask])
+        self.std = np.std(X[self.mask])
         x_trans = (X - self.mean) / self.std
         return x_trans
 
@@ -170,22 +171,19 @@ class ParamPhysScaler:
     def transform(self, x):
         x_trans = None
         self.mask = x > 0
-        
-        # Remove elements with missing values (negative)
-        # to compute the true mean and std
-        xx = x[self.mask]
+
         if self.param == 'T_eff':
-            x_trans = self.__transform_teff(xx)
+            x_trans = self.__transform_teff(x)
         if self.param == 'Lum':
-            x_trans = self.__transform_lum(xx)
+            x_trans = self.__transform_lum(x)
         if self.param == 'rho':
-            x_trans = self.__transform_rho(xx)
+            x_trans = self.__transform_rho(x)
         if self.param == 'Mass':
-            x_trans = self.__transform_mass(xx)
+            x_trans = self.__transform_mass(x)
         if self.param == 'logg':
-            x_trans = self.__transform_logg(xx)
+            x_trans = self.__transform_logg(x)
         if self.param == 'Radius':
-            x_trans = self.__transform_radius(xx)
+            x_trans = self.__transform_radius(x)
 
         x_trans = self.__apply_mask(x_trans)
         return x_trans
