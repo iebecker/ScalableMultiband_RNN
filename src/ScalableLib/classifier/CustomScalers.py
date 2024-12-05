@@ -24,7 +24,6 @@ class ParamPhysScaler:
         self.min = None
 
     def __transform_teff(self, X):
-        # x_trans = (x-3000.0)/1000.0
         self.mean = np.mean(X)
         self.std = np.std(X)
         X_trans = (X - self.mean) / self.std
@@ -171,19 +170,22 @@ class ParamPhysScaler:
     def transform(self, x):
         x_trans = None
         self.mask = x > 0
-
+        
+        # Remove elements with missing values (negative)
+        # to compute the true mean and std
+        xx = x[self.mask]
         if self.param == 'T_eff':
-            x_trans = self.__transform_teff(x)
+            x_trans = self.__transform_teff(xx)
         if self.param == 'Lum':
-            x_trans = self.__transform_lum(x)
+            x_trans = self.__transform_lum(xx)
         if self.param == 'rho':
-            x_trans = self.__transform_rho(x)
+            x_trans = self.__transform_rho(xx)
         if self.param == 'Mass':
-            x_trans = self.__transform_mass(x)
+            x_trans = self.__transform_mass(xx)
         if self.param == 'logg':
-            x_trans = self.__transform_logg(x)
+            x_trans = self.__transform_logg(xx)
         if self.param == 'Radius':
-            x_trans = self.__transform_radius(x)
+            x_trans = self.__transform_radius(xx)
 
         x_trans = self.__apply_mask(x_trans)
         return x_trans
