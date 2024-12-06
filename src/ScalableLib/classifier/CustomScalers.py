@@ -198,7 +198,7 @@ class ParamPhysScaler:
     def transform(self, x):
         x_trans = None
 
-
+        self.mask = x > 0        
         if self.param == 'T_eff':
             x_trans = self.__transform_teff(x)
         elif self.param == 'Lum':
