@@ -12,3 +12,6 @@ __pycache__/
 
 # Ignore the config of dvc, it contains secrets
 *.dvc/config
+
+# Ignore .DS_Store
+.DS_Store
