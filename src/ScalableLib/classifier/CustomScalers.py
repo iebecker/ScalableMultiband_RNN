@@ -23,12 +23,12 @@ class ParamPhysScaler:
         self.std = None
         self.min = None
 
-    def __transform_teff(self, X):
-
+    def __fit_teff(self,X):
         self.mean = np.mean(X[self.mask])
         self.std = np.std(X[self.mask])
+        
+    def __transform_teff(self, X):
         X_trans = (X - self.mean) / self.std
-
         return X_trans
 
     def __inverse_transform_teff(self, x_trans):
@@ -50,6 +50,9 @@ class ParamPhysScaler:
         # Assign the stored elements to the corresponding properties
         self.mean = scaler_data['mean']
         self.std = scaler_data['std']
+
+    def __fit_lum(self, X):
+        return X
 
     def __transform_lum(self, x):
         x_trans = np.log10(x + 0.01) + 4.0
@@ -73,14 +76,16 @@ class ParamPhysScaler:
 
         # No files are needed
 
+    def __fit_mass(Selx, X):
+        return X
+
     def __transform_mass(self, X):
         x_trans = X
         return x_trans
 
     def __inverse_transform_mass(self, x_trans):
         x_trans = np.asarray(x_trans)
-        x = x_trans
-        return x
+        return x_trans
 
     def __load_mass(self, path_scaler: str)->None:
         """
@@ -95,6 +100,9 @@ class ParamPhysScaler:
 
         # No files are needed
 
+    def __fit_rho(self, X):
+        return X
+    
     def __transform_rho(self, X):
         x_trans = np.log10(X + 0.01) + 3.0
         return x_trans
@@ -117,14 +125,15 @@ class ParamPhysScaler:
 
         # No files are needed
 
+    def __fit_logg(self, X):
+        return X
+
     def __transform_logg(self, x):
-        x_trans = x
-        return x_trans
+        return x
 
     def __inverse_transform_logg(self, X_trans):
         x_trans = np.asarray(x_trans)
-        x = x_trans
-        return x
+        return x_trans
     
     def __load_logg(self, path_scaler: str)->None:
         """
@@ -139,9 +148,12 @@ class ParamPhysScaler:
 
         # No files are needed
 
-    def __transform_radius(self, X):
+    def __fit_radius(self, X):
         self.mean = np.mean(X[self.mask])
         self.std = np.std(X[self.mask])
+
+    def __transform_radius(self, X):
+
         x_trans = (X - self.mean) / self.std
         return x_trans
 
@@ -166,23 +178,38 @@ class ParamPhysScaler:
         self.std = scaler_data['std']
 
     def fit(self, x):
-        pass
+        """Fits the scalers to the data, usually mean and std."""
+        
+        self.mask = x > 0        
+
+        if self.param == 'T_eff':
+            x_trans = self.__fit_teff(x)
+        elif self.param == 'Lum':
+            x_trans = self.__fit_lum(x)
+        elif self.param == 'rho':
+            x_trans = self.__fit_rho(x)
+        elif self.param == 'Mass':
+            x_trans = self.__fit_mass(x)
+        elif self.param == 'logg':
+            x_trans = self.__fit_logg(x)
+        elif self.param == 'Radius':
+            x_trans = self.__fit_radius(x)
 
     def transform(self, x):
         x_trans = None
-        self.mask = x > 0
+
 
         if self.param == 'T_eff':
             x_trans = self.__transform_teff(x)
-        if self.param == 'Lum':
+        elif self.param == 'Lum':
             x_trans = self.__transform_lum(x)
-        if self.param == 'rho':
+        elif self.param == 'rho':
             x_trans = self.__transform_rho(x)
-        if self.param == 'Mass':
+        elif self.param == 'Mass':
             x_trans = self.__transform_mass(x)
-        if self.param == 'logg':
+        elif self.param == 'logg':
             x_trans = self.__transform_logg(x)
-        if self.param == 'Radius':
+        elif self.param == 'Radius':
             x_trans = self.__transform_radius(x)
 
         x_trans = self.__apply_mask(x_trans)
@@ -191,15 +218,15 @@ class ParamPhysScaler:
     def inverse_transform(self, x_trans):
         if self.param == 'T_eff':
             x = self.__inverse_transform_teff(x_trans)
-        if self.param == 'Lum':
+        elif self.param == 'Lum':
             x = self.__inverse_transform_lum(x_trans)
-        if self.param == 'rho':
+        elif self.param == 'rho':
             x = self.__inverse_transform_rho(x_trans)
-        if self.param == 'Mass':
+        elif self.param == 'Mass':
             x = self.__inverse_transform_mass(x_trans)
-        if self.param == 'logg':
+        elif self.param == 'logg':
             x = self.__inverse_transform_logg(x_trans)
-        if self.param == 'Radius':
+        elif self.param == 'Radius':
             x = self.__inverse_transform_radius(x_trans)
 
         # # Apply inverse masks to return to original values
@@ -219,15 +246,15 @@ class ParamPhysScaler:
         # Load each scaler 
         if self.param == 'T_eff':
             self.__load_teff(path_scaler)
-        if self.param == 'Lum':
+        elif self.param == 'Lum':
             x = self.__load_lum(path_scaler)
-        if self.param == 'rho':
+        elif self.param == 'rho':
             x = self.__load_rho(path_scaler)
-        if self.param == 'Mass':
+        elif self.param == 'Mass':
             x = self.__load_mass(path_scaler)
-        if self.param == 'logg':
+        elif self.param == 'logg':
             x = self.__load_logg(path_scaler)
-        if self.param == 'Radius':
+        elif self.param == 'Radius':
             x = self.__load_radius(path_scaler)
     
     def __save(self, path_scaler:str, scaler:dict)->None:
