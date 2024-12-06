@@ -380,14 +380,15 @@ class prepData:
         self.scalers = {}
         df = pd.DataFrame(list(self.dict_train['Physical_Values']))
         for var in self.params_phys:
-            nonzero = df[var]
-            b = nonzero > 0
-            nonzero = nonzero[b]
+            param_series = df[var]
+            # b = nonzero > 0
+            # nonzero = nonzero[b]
 
             self.scalers[var] = ParamPhysScaler(param=var,
                                                 mask_value=self.mask_value,
                                                 )
-            self.scalers[var].fit(nonzero.values.reshape(-1, 1))
+            # Fits the values if needed
+            self.scalers[var].fit(param_series.values.reshape(-1, 1))
 
     def save_scalers(self)->None:
         """Store the scalers using the CustomScalers class"""

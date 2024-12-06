@@ -183,17 +183,17 @@ class ParamPhysScaler:
         self.mask = x > 0        
 
         if self.param == 'T_eff':
-            x_trans = self.__fit_teff(x)
+            self.__fit_teff(x)
         elif self.param == 'Lum':
-            x_trans = self.__fit_lum(x)
+            self.__fit_lum(x)
         elif self.param == 'rho':
-            x_trans = self.__fit_rho(x)
+            self.__fit_rho(x)
         elif self.param == 'Mass':
-            x_trans = self.__fit_mass(x)
+            self.__fit_mass(x)
         elif self.param == 'logg':
-            x_trans = self.__fit_logg(x)
+            self.__fit_logg(x)
         elif self.param == 'Radius':
-            x_trans = self.__fit_radius(x)
+            self.__fit_radius(x)
 
     def transform(self, x):
         x_trans = None
