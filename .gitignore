@@ -15,4 +15,9 @@ __pycache__/
 
 # Ignore .DS_Store
 .DS_Store
+# Ignore data as it is being tracked by dvc
 /data
+
+# Ignore vscode sttings
+.vscode
+
