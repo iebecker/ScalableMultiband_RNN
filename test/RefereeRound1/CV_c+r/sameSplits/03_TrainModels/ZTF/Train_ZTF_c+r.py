@@ -17,7 +17,7 @@ import ScalableLib.classifier.Multiband as multiband
 
 
 # To see if the system recognises the GPU
-device = 1
+device = 0
 devices = tf.config.experimental.list_physical_devices('GPU')
 tf.config.set_visible_devices(devices[device], 'GPU')
 tf.config.experimental.set_memory_growth(device=devices[device], enable=True)
@@ -40,7 +40,7 @@ survey = 'ZTF'
 path = os.path.join('../../02_CreateRecords/', survey, 'Folds/Fold_*',)
 folds = glob(path)
 folds.sort()
-folds
+print(folds)
 
 
 # Create folder results
@@ -66,7 +66,7 @@ train_args = {
             'buffer_size':10000,
             'epochs':1000,
             'num_threads':7,
-            'batch_size':128,
+            'batch_size':256,
             'dropout':0.30,
             'lr':[[5e-3]*2, 2.5e-3], # [[band1, band2], central]
             'val_steps':50,
@@ -106,7 +106,7 @@ train_args_specific={
 # In[10]:
 
 
-for fold in folds[3:]:
+for fold in folds[1:5]:
     tf.keras.backend.clear_session()
     # Set the fold path
     base_dir = fold+'/'
