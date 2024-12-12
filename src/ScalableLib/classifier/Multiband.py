@@ -18,7 +18,7 @@ from ScalableLib.classifier.CustomScalers import ParamPhysScaler
 from ScalableLib.classifier.CustomModels import CustomModelBand, CustomModelCentral
 import ScalableLib.base.Multiband as Multiband
 import ScalableLib.base.Parser as Parser
-import ScalableLib.base.plot as plot
+# import ScalableLib.base.plot as plot
 
 
 from ScalableLib.classifier.CustomLayers import MeanMagLayer, RawTimesLayer, RNNLayersBands, SauceLayer, ApplyMask, \

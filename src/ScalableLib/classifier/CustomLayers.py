@@ -645,10 +645,11 @@ class RNNLayersBands(tf.keras.Model):
                  l2=0.0,
                  **kwargs
                  ):
-        super(RNNLayersBands, self).__init__(**kwargs)
-
         """Creates RNNs for each band. It can be implemented with the custom GRU implementation
         the CUDnn implementations."""
+        super(RNNLayersBands, self).__init__(**kwargs)
+
+
 
         self.bidirectional = bidirectional
         self.use_gated_common = use_gated_common
