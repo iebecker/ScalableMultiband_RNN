@@ -271,8 +271,7 @@ class PrepData:
         [lcs[i[1]].append([i[0], i[2], i[3], i[4]]) for i in read_lcs]
         return lcs
 
-    def parallel_read(self):
-        """Run parallel read using n_jobs threads, depending on the user choice."""
+    def parallel_read(self) -> None:
         """Reads light curve data in parallel using multiple threads.
 
         This method determines whether to use a default split or a custom split and 
@@ -283,18 +282,23 @@ class PrepData:
         else:
             self.parallel_read_custom()
 
-    def parallel_read_default(self):
-        """Read the data using n_jobs. Store them in a dict_transform where the classes
-        are keys."""
+    def parallel_read_default(self) -> None:
+        """Reads the training dataset using parallel processing.
+
+        - Uses `joblib.Parallel` for reading using `self.n_jobs` processes..
+        - Stores results in a dictionary `self.lcs`, where each class is a key.
+        """        
         # Make the selection here, to avoid reading unnecessary data
         self.read_lcs = self.__parallel_read_util(self.data_train)
         # Creates the container dictionary, key subclass, value, all the light curves
         self.lcs = self.__sort_lcs_util(self.read_lcs)
 
-    def parallel_read_custom(self):
-        """Read all the datasets using n_jobs. Store each split in a dict_transform where the classes
-        are keys."""
+    def parallel_read_custom(self) -> None:
+        """Reads all datasets (train, val, test) in parallel for custom splits.
 
+        - Uses multi-processing to read the data faster.
+        - Each dataset is stored separately in dictionaries.
+        """
         # Process according to the different experimental setup
         if self.custom_test_split:
             # Make the selection here, to avoid reading unnecessary data
