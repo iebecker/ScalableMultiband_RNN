@@ -362,8 +362,17 @@ class PrepData:
             self.dict_val = self.__process_shuffle_util(out_dict_val)
             self.dict_test = self.__process_shuffle_util(out_dict_test)
 
-    def __process_lcs_util(self, lcs):
-        """Function to process the lcs."""
+    def __process_lcs_util(self, lcs: Dict[str, List[Any]]) -> Dict[str, np.ndarray]:
+        """Processes light curves for each class and converts them into a structured format.
+
+        Args:
+            lcs (Dict[str, List[Any]]): Dictionary where keys are class labels, 
+                                        and values are lists of light curves.
+
+        Returns:
+            Dict[str, np.ndarray]: Dictionary containing processed light curves, 
+                                converted to NumPy arrays.
+        """
 
         all_processed = []
         for c in self.classes:
@@ -547,8 +556,8 @@ class PrepData:
     def normalize_phys(self):
         pass
 
-    def shard_serialize_all(self):
-        """Serialize the data into TFRecords."""
+    def shard_serialize_all(self) -> None:
+        """Serializes training, validation, and test datasets into TFRecords."""
 
         self.shard_serialize(self.dict_train,
                              'train',
