@@ -1,5 +1,6 @@
-import tensorflow as tf
 from itertools import combinations
+
+import tensorflow as tf
 import numpy as np
 
 
@@ -88,7 +89,7 @@ class MeanColorLayer(tf.keras.layers.Layer):
         updates = tf.concat([u1, u2], axis=0)
 
         # Compute the shape #combinations x bands
-        shape = tf.concat([tf.shape(v1)[0], NN], axis=0)
+        shape = tf.stack([tf.shape(v1)[0], NN], axis=0)
         shape = tf.cast(shape, tf.int64)
 
         # Obtain the matrix
@@ -416,7 +417,6 @@ class ApplyMask(tf.keras.layers.Layer):
         self.supports_masking = True
         self.mask_value = mask_value
 
-    # @tf.function( experimental_relax_shapes=True)
     def call(self, inputs, N):
         masks = tf.sequence_mask(N)
         masks = tf.cast(masks, tf.float32)  # MAsk to float.
@@ -447,7 +447,7 @@ class InputCentral(tf.keras.layers.Layer):
         # self.num_classes = num_classes
         self.supports_masking = True
 
-    @tf.function(experimental_relax_shapes=True)
+    @tf.function(reduce_retracing=True)
     def sort_states(self, tensor_test, indices):
         """Sort tensor_test given the order in indices"""
         shapes = tf.shape(tensor_test, name='Get_shapes')
@@ -645,10 +645,11 @@ class RNNLayersBands(tf.keras.Model):
                  l2=0.0,
                  **kwargs
                  ):
-        super(RNNLayersBands, self).__init__(**kwargs)
-
         """Creates RNNs for each band. It can be implemented with the custom GRU implementation
         the CUDnn implementations."""
+        super(RNNLayersBands, self).__init__(**kwargs)
+
+
 
         self.bidirectional = bidirectional
         self.use_gated_common = use_gated_common

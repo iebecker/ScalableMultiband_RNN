@@ -50,7 +50,7 @@ class CategoricalFocalLoss(tf.keras.losses.Loss):
         # If not using class weight, all sequences are equal.
         # They do not depend on the length of the LC.
         if self.class_weight is not None:
-            weighted = tf.multiply(tf.cast(y_true, tf.float32), class_weight)
+            weighted = tf.multiply(tf.cast(y_true, tf.float32), self.class_weight)
 
             loss = tf.keras.losses.categorical_crossentropy(weighted,
                                                             y_pred,

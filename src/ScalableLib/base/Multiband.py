@@ -1,9 +1,9 @@
 import json
-import numpy as np
 import os
+
 import tensorflow as tf
 from datetime import datetime
-
+import numpy as np
 
 class Network:
     def __init__(self):
@@ -100,7 +100,9 @@ class Network:
         self.use_raw_input_central = train_args['use_raw_input_central']
         self.train_steps_central = train_args['train_steps_central']
         self.print_report = train_args['print_report']
+        # Define the path to the folder where the scalers are located
         self.path_scalers = train_args['path_scalers']
+        
         self.loss_weights_central = train_args['loss_weights_central']
         self.callbacks_args = train_args['callbacks_args']
 
@@ -229,23 +231,6 @@ class Network:
 
         self.mask_value = -99.99
         self.sauce = [None] * self.n_bands
-
-    def __define_inputs_test(self):
-        """Define the inputs for the test.
-        We hardcoded the inputs for the training using the train dataset."""
-        # Define the keys from the dataset
-        keys = list(self.dataset_test.element_spec[0].keys())
-        self.inputs = {}
-        self.inputs_central = {}
-        for key in keys:
-            self.inputs[key] = tf.keras.layers.Input(shape=self.dataset_test.element_spec[0][key].shape[1:],
-                                                     dtype=self.dataset_test.element_spec[0][key].dtype,
-                                                     name=key
-                                                     )
-            self.inputs_central[key] = tf.keras.layers.Input(shape=self.dataset_test.element_spec[0][key].shape[1:],
-                                                             dtype=self.dataset_test.element_spec[0][key].dtype,
-                                                             name=key
-                                                             )
 
     def __define_inputs(self):
         # Define the keys from the dataset

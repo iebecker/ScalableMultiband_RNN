@@ -4,24 +4,27 @@ import os
 import pickle
 from typing import Union, List, Any
 
-import base.Multiband as Multiband
-import base.Parser as Parser
-import base.plot as plot
+
 import numpy as np
 import tensorflow as tf
-import tensorflow_addons as tfa
-from classifier.CustomLayers import *
-from classifier.CustomLosses import *
-from classifier.CustomMetrics import *
-from classifier.CustomModels import CustomModelBand, CustomModelCentral
 from pandas import DataFrame
-from sklearn.metrics import classification_report, r2_score, mean_squared_error
+from sklearn.metrics import classification_report, r2_score, root_mean_squared_error
 from tensorflow.keras.callbacks import EarlyStopping
 
-from src.classifier.CustomLayers import MeanMagLayer, RawTimesLayer, RNNLayersBands, SauceLayer, ApplyMask, \
+from ScalableLib.classifier.CustomLayers import *
+from ScalableLib.classifier.CustomLosses import *
+from ScalableLib.classifier.CustomMetrics import *
+from ScalableLib.classifier.CustomScalers import ParamPhysScaler
+from ScalableLib.classifier.CustomModels import CustomModelBand, CustomModelCentral
+import ScalableLib.base.Multiband as Multiband
+import ScalableLib.base.Parser as Parser
+# import ScalableLib.base.plot as plot
+
+
+from ScalableLib.classifier.CustomLayers import MeanMagLayer, RawTimesLayer, RNNLayersBands, SauceLayer, ApplyMask, \
     InputCentral, MeanColorLayer, AllTimes, RNNLayersCentral, LastRelevantLayer
-from src.classifier.CustomLosses import CrossEntropy_FullWeights, MSE_masked
-from src.classifier.CustomMetrics import CustomAccuracy, CustomTopKAccuracy, CustomFinalAccuracy, \
+from ScalableLib.classifier.CustomLosses import CrossEntropy_FullWeights, MSE_masked
+from ScalableLib.classifier.CustomMetrics import CustomAccuracy, CustomTopKAccuracy, CustomFinalAccuracy, \
     CustomTopKFinalAccuracy, CustomFinalF1Score, Masked_RMSE, Masked_R2
 
 
@@ -102,22 +105,22 @@ class Network(Multiband.Network):
             'RawTimes_' + str(i): raw_times,
         }
 
-        # Define the input and output signature
-        input_sig_0 = {'ID': tf.TensorSpec(shape=(None,), dtype=tf.string)}
-        for bb in range(self.n_bands):
-            input_sig_0['input_LC_' + str(bb)] = tf.TensorSpec(shape=(None, None, self.w), dtype=tf.float32)
-            input_sig_0['O_' + str(bb)] = tf.TensorSpec(shape=(None, None), dtype=tf.int32)
-            input_sig_0['N_' + str(bb)] = tf.TensorSpec(shape=(None,), dtype=tf.int32)
-            input_sig_0['M0_' + str(bb)] = tf.TensorSpec(shape=(None,), dtype=tf.float32)
-            input_sig_0['T0_' + str(bb)] = tf.TensorSpec(shape=(None,), dtype=tf.float32)
-            input_sig_0['U_' + str(bb)] = tf.TensorSpec(shape=(None, None,), dtype=tf.float32)
+        # # Define the input and output signature
+        # input_sig_0 = {'ID': tf.TensorSpec(shape=(None,), dtype=tf.string)}
+        # for bb in range(self.n_bands):
+        #     input_sig_0['input_LC_' + str(bb)] = tf.TensorSpec(shape=(None, None, self.w), dtype=tf.float32)
+        #     input_sig_0['O_' + str(bb)] = tf.TensorSpec(shape=(None, None), dtype=tf.int32)
+        #     input_sig_0['N_' + str(bb)] = tf.TensorSpec(shape=(None,), dtype=tf.int32)
+        #     input_sig_0['M0_' + str(bb)] = tf.TensorSpec(shape=(None,), dtype=tf.float32)
+        #     input_sig_0['T0_' + str(bb)] = tf.TensorSpec(shape=(None,), dtype=tf.float32)
+        #     input_sig_0['U_' + str(bb)] = tf.TensorSpec(shape=(None, None,), dtype=tf.float32)
 
-        input_sig_1 = {'Class': tf.TensorSpec(shape=(None, self.num_classes), dtype=tf.int32)}
+        # input_sig_1 = {'Class': tf.TensorSpec(shape=(None, self.num_classes), dtype=tf.int32)}
 
         self.models[i] = CustomModelBand(inputs=self.inputs,
                                          outputs=self.outputs_[i],
                                          name='Model_' + str(i),
-                                         signature=(input_sig_0, input_sig_1),
+                                        #  signature=(input_sig_0, input_sig_1),
                                          N_skip=self.N_skip,
                                          )
 
@@ -127,12 +130,19 @@ class Network(Multiband.Network):
                                               ),
         }
 
-        self.train_metrics[i] = {'Class': [CustomAccuracy(name='Acc', N_skip=self.N_skip, mask_value=self.mask_value),
-                                           CustomTopKAccuracy(k=2, name='Top2', N_skip=self.N_skip,
+        self.train_metrics[i] = {'Class': [CustomAccuracy(name='Acc',
+                                                          N_skip=self.N_skip,
+                                                          num_classes=self.num_classes,
+                                                          mask_value=self.mask_value,
+                                                          ),
+                                           CustomTopKAccuracy(k=2,
+                                                              num_classes=self.num_classes,
+                                                              name='Top2', 
+                                                              N_skip=self.N_skip,
                                                               mask_value=self.mask_value), ]
                                  }
 
-        self.optimizers[i] = self.__get_optim(self.lr_bands[i], optimizer='AdamW')
+        self.optimizers[i] = self.__get_optimizer(self.lr_bands[i], optimizer='AdamW')
 
         self.models[i].compile(loss=self.loss_functions[i],
                                optimizer=self.optimizers[i],
@@ -304,32 +314,32 @@ class Network(Multiband.Network):
         for param in self.physical_params:
             self.outputs_end[param] = last_phys[param]
 
-        # Define the input and output signature
+        # # Define the input and output signature
 
-        input_sig_0 = {'ID': tf.TensorSpec(shape=(None,), dtype=tf.string)}
-        for bb in range(self.n_bands):
-            input_sig_0['input_LC_' + str(bb)] = tf.TensorSpec(shape=(None, None, self.w), dtype=tf.float32)
-            input_sig_0['O_' + str(bb)] = tf.TensorSpec(shape=(None, None), dtype=tf.int32)
-            input_sig_0['N_' + str(bb)] = tf.TensorSpec(shape=(None,), dtype=tf.int32)
-            input_sig_0['M0_' + str(bb)] = tf.TensorSpec(shape=(None,), dtype=tf.float32)
-            input_sig_0['T0_' + str(bb)] = tf.TensorSpec(shape=(None,), dtype=tf.float32)
-            input_sig_0['U_' + str(bb)] = tf.TensorSpec(shape=(None, None,), dtype=tf.float32)
+        # input_sig_0 = {'ID': tf.TensorSpec(shape=(None,), dtype=tf.string)}
+        # for bb in range(self.n_bands):
+        #     input_sig_0['input_LC_' + str(bb)] = tf.TensorSpec(shape=(None, None, self.w), dtype=tf.float32)
+        #     input_sig_0['O_' + str(bb)] = tf.TensorSpec(shape=(None, None), dtype=tf.int32)
+        #     input_sig_0['N_' + str(bb)] = tf.TensorSpec(shape=(None,), dtype=tf.int32)
+        #     input_sig_0['M0_' + str(bb)] = tf.TensorSpec(shape=(None,), dtype=tf.float32)
+        #     input_sig_0['T0_' + str(bb)] = tf.TensorSpec(shape=(None,), dtype=tf.float32)
+        #     input_sig_0['U_' + str(bb)] = tf.TensorSpec(shape=(None, None,), dtype=tf.float32)
 
-        input_sig_1 = {'Class': tf.TensorSpec(shape=(None, self.num_classes), dtype=tf.int32),
-                       'FinalClass': tf.TensorSpec(shape=(None, self.num_classes), dtype=tf.int32)
-                       }
-        for param in self.physical_params:
-            input_sig_1[param] = tf.TensorSpec(shape=(None,), dtype=tf.float32)
+        # input_sig_1 = {'Class': tf.TensorSpec(shape=(None, self.num_classes), dtype=tf.int32),
+        #                'FinalClass': tf.TensorSpec(shape=(None, self.num_classes), dtype=tf.int32)
+        #                }
+        # for param in self.physical_params:
+        #     input_sig_1[param] = tf.TensorSpec(shape=(None,), dtype=tf.float32)
 
         self.model_central = CustomModelCentral(inputs=self.inputs_central,
                                                 outputs=self.outputs_end,
-                                                signature=(input_sig_0, input_sig_1),
+                                                # signature=(input_sig_0, input_sig_1),
                                                 n_bands=self.n_bands,
                                                 N_skip=self.N_skip,
                                                 name='Model_central',
                                                 )
 
-        self.optimizers['Central'] = self.__get_optim(self.lr_central, optimizer='AdamW')
+        self.optimizers['Central'] = self.__get_optimizer(self.lr_central, optimizer='AdamW')
 
         self.loss_functions['Central'] = {
             'Class': CrossEntropy_FullWeights(N_skip=self.N_skip,
@@ -341,11 +351,24 @@ class Network(Multiband.Network):
             self.loss_functions['Central'][param] = MSE_masked(mask_value=self.mask_value)
 
         self.train_metrics['Central'] = {
-            'Class': [CustomAccuracy(name='CentralAcc', N_skip=self.N_skip, mask_value=self.mask_value),
-                      CustomTopKAccuracy(k=2, name='CentralTop2', N_skip=self.N_skip, mask_value=self.mask_value),
-                      CustomFinalAccuracy(name='FinalAcc', mask_value=self.mask_value),
-                      CustomTopKFinalAccuracy(k=2, name='FinalTop2', mask_value=self.mask_value),
-                      CustomFinalF1Score(self.num_classes, name='Final_FScore', mask_value=self.mask_value)
+            'Class': [CustomAccuracy(name='CentralAcc',
+                                    N_skip=self.N_skip,
+                                    num_classes=self.num_classes,
+                                    mask_value=self.mask_value,
+                                    ),
+                      CustomTopKAccuracy(k=2,
+                                        num_classes=self.num_classes,
+                                        name='CentralTop2', 
+                                        N_skip=self.N_skip, 
+                                        mask_value=self.mask_value),
+                      CustomFinalAccuracy(name='FinalAcc',
+                                          mask_value=self.mask_value),
+                      CustomTopKFinalAccuracy(k=2, 
+                                              name='FinalTop2', 
+                                              mask_value=self.mask_value),
+                      CustomFinalF1Score(self.num_classes, 
+                                         name='Final_FScore', 
+                                         mask_value=self.mask_value)
                       ],
 
         }
@@ -375,16 +398,16 @@ class Network(Multiband.Network):
         self.__add_model_central()
 
     def train(self, train_args, tfrecords_train, tfrecords_val, tfrecords_test):
+
         self.set_train_settings(train_args)
+        self.__add_placeholders()
         # Load scalers
         if 'regression' in self.mode:
             # Load the scalers
-            with open(self.path_scalers, 'rb') as file:
-                self.scalers = pickle.load(file)
+            self.load_scalers()
 
         self.__initialize_datasets(tfrecords_train, tfrecords_val, tfrecords_test)
         self.__define_inputs()
-        self.__add_placeholders()
         self.__add_writers()
         self.__add_models()
         self.__add_callbacks()
@@ -433,6 +456,7 @@ class Network(Multiband.Network):
             self.callbacks[b].on_train_begin()
         print('Start training')
         try:
+            # TODO: Enumerate to do the automatic increment of variable batch 
             batch = 0
             # Start the main loop
             for epoch in range(self.epochs):
@@ -575,8 +599,10 @@ class Network(Multiband.Network):
         mask_value = {}  # dict_transform to store the values representing the mask.
         if 'regression' in self.mode:
             # Load the scalers
-            with open(self.path_scalers, 'rb') as file:
-                self.scalers = pickle.load(file)
+            self.load_scalers()    
+            # Load the scalers
+            # with open(self.path_scalers, 'rb') as file:
+            #     self.scalers = pickle.load(file)
             # Transform each column
             self.output_params = {}
             for param in self.physical_params:
@@ -597,7 +623,9 @@ class Network(Multiband.Network):
         self.test_results = output
 
         if print_report:
-            print(classification_report(self.test_results['Class'], self.test_results['Prediction']))
+            print(classification_report(self.test_results['Class'], self.test_results['Prediction'],
+                                        digits=2, 
+                                        zero_division=0.0))
 
             if 'regression' in self.mode:
                 self.regression_scores = {'R2': {}, 'RMSE': {}}
@@ -606,9 +634,9 @@ class Network(Multiband.Network):
                     # Estimate the metrics using the existint phys params
                     mask = output[param] > mask_value[param] + 1
                     self.regression_scores['R2'][param] = r2_score(output[param][mask], output['Pred_' + param][mask])
-                    self.regression_scores['RMSE'][param] = mean_squared_error(output[param][mask],
+                    self.regression_scores['RMSE'][param] = root_mean_squared_error(output[param][mask],
                                                                                output['Pred_' + param][mask],
-                                                                               squared=False)  # False means RMSE
+                                                                               )
 
                 print(self.regression_scores)
 
@@ -654,21 +682,35 @@ class Network(Multiband.Network):
             ],
                 model=self.models[b],
             )
-
+    def __define_inputs_test(self):
+        # Define the keys from the dataset
+        keys = list(self.dataset_test.element_spec[0].keys())
+        self.inputs = {}
+        self.inputs_central = {}
+        for key in keys:
+            self.inputs[key] = tf.keras.layers.Input(shape=self.dataset_test.element_spec[0][key].shape[1:],
+                                                     dtype=self.dataset_test.element_spec[0][key].dtype,
+                                                     name=key
+                                                     )
+            self.inputs_central[key] = tf.keras.layers.Input(shape=self.dataset_test.element_spec[0][key].shape[1:],
+                                                             dtype=self.dataset_test.element_spec[0][key].dtype,
+                                                             name=key
+                                                             )
     def run_test(self, path_parameters, path_records_test, path_weights, df_paths=None):
         # Read the parameters
         self.load_setup(path_parameters)
+        # Add placeholders
+        self.__add_placeholders()
         # Load scalers
         if 'regression' in self.mode:
             # Load the scalers
-            with open(self.path_scalers, 'rb') as file:
-                self.scalers = pickle.load(file)
+            self.load_scalers()
         # Initialize dataset
         self.__initialize_dataset_test(path_records_test)
-        # Define the input shapes
+        # Define the input shapes for the test
         self.__define_inputs_test()
-        # Add placeholders
-        self.__add_placeholders()
+        
+
         # Build the models
         self.__add_models()
         # Load weights
@@ -677,28 +719,18 @@ class Network(Multiband.Network):
         self.test_loop(print_report=self.print_report)
         # Save the results if chosen
         self.save_results(df_paths)
-    def run_test_test(self, path_parameters, path_records_test, path_weights, df_paths=None):
-        # Read the parameters
-        self.load_setup(path_parameters)
-        # Load scalers
-        if 'regression' in self.mode:
-            # Load the scalers
-            with open(self.path_scalers, 'rb') as file:
-                self.scalers = pickle.load(file)
-        # Initialize dataset
-        self.__initialize_dataset_test(path_records_test)
-        # Define the input shapes
-        self.__define_inputs_test()
-        # Add placeholders
-        self.__add_placeholders()
-        # Build the models
-        self.__add_models()
-        # Load weights
-        self.load_weights(path_weights)
-        # # Evaluate on the test set
-        # self.test_loop(print_report=self.print_report)
-        # # Save the results if chosen
-        # self.save_results(df_paths)
+
+    def load_scalers(self)->None:
+        """Initialize and load the scalers parameters for the regression"""
+        # Scalers property is initialized as an empty dictionary 
+        self.scalers = {}
+        # Iterate over the physical parameters of the model
+        for param in self.physical_params:
+            # Initialize each scaler
+            self.scalers[param] = ParamPhysScaler(param, self.mask_value)
+            # Call the method to load the scaler.
+            self.scalers[param].load_scaler(self.path_scalers)
+
     def load_setup(self, path):
         with open(path) as f:
             all_metadata = json.load(f)
@@ -834,8 +866,8 @@ class Network(Multiband.Network):
     def load_weights(self, models_path):
         for b in range(self.n_bands):
             bb = str(b)
-            self.models[b].load_weights(models_path + '/model_' + bb)
-        self.model_central.load_weights(models_path + '/model_central')
+            self.models[b].load_weights(models_path + '/model_' + bb).expect_partial()
+        self.model_central.load_weights(models_path + '/model_central').expect_partial()
 
     def __initialize_dataset_test(self, filename_test):
         loader = Parser.Parser(physical_parameters=self.physical_params,
@@ -878,7 +910,7 @@ class Network(Multiband.Network):
                                                )
 
     @staticmethod
-    def __get_optim(lr, optimizer='Adam'):
+    def __get_optimizer(lr:float, optimizer:str='Adam'):
         # Specify the scheduler
         lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(lr,
                                                                      decay_steps=60,
@@ -886,7 +918,7 @@ class Network(Multiband.Network):
                                                                      staircase=False)
         # Specify which optimizer to use
         if optimizer == 'AdamW':
-            optim = tfa.optimizers.AdamW(learning_rate=lr_schedule,
+            optim = tf.optimizers.AdamW(learning_rate=lr_schedule,
                                          weight_decay=1e-4,
                                          )
         else:

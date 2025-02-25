@@ -1,10 +1,29 @@
-from sklearn.metrics import confusion_matrix, classification_report, r2_score, mean_squared_error, \
+from sklearn.metrics import confusion_matrix, classification_report, r2_score, root_mean_squared_error, \
     mean_absolute_percentage_error
 import numpy as np
 import matplotlib.pyplot as plt
 import itertools
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import pandas as pd
+
+def compute_confussion_matrices(path_fold:str, num_classes:int, trans:dict, labels:list=None, ):
+    """
+    Compute th confussion matrices from the output of the model
+
+    path_fold (str): Contains the path to each results file
+    num_classes (int): Number of classes to consider
+    trans (dict): dictionary to translate number classes into string ones.
+    labels: Labels and their order. Useful to organize the same structure across folds.
+    """
+    # Read the output file
+    df = pd.read_csv(path_fold)
+    if labels is None:
+        labels = [trans[i] for i in range(num_classes)]
+    cm_fold = confusion_matrix(df.Class, df.Pred, labels=labels, normalize='true')
+
+    return cm_fold
+
+
 
 
 def compute_regression(path_fold, phys_params):
@@ -32,7 +51,7 @@ def compute_regression(path_fold, phys_params):
 
         # Compute masked R2
         masked_r2 = r2_score(masked_true, masked_pred)
-        masked_rmse = mean_squared_error(masked_true, masked_pred, squared=False)
+        masked_rmse = root_mean_squared_error(masked_true, masked_pred)
         masked_MAPE = mean_absolute_percentage_error(masked_true, masked_pred)
         # Compute the percentage error
         param_result = {'R2': masked_r2, 'RMSE': masked_rmse, 'MAPE': masked_MAPE}
@@ -71,16 +90,6 @@ def obtain_accumulated_regressions(regressions, metric='mean'):
         return None
 
 
-def compute_confussion_matrices(path_fold, labels=None):
-    # Read the output file
-    df = pd.read_csv(path_fold)
-    if labels is None:
-        labels = [new.trans[i] for i in range(new.num_classes)]
-    cm_fold = confusion_matrix(df.Class, df.Pred, labels=labels, normalize='true')
-
-    return cm_fold
-
-
 def compute_classification_report(path_fold):
     # Read the output file
     df = pd.read_csv(path_fold)
@@ -89,15 +98,34 @@ def compute_classification_report(path_fold):
     return report
 
 
-def obtain_accumulated_metrics(reports_, metric='mean', label_order=None):
-    reports_np = 100 * np.array(
-        [pd.DataFrame(i)[label_order].loc[['precision', 'recall', 'f1-score', 'support']] for i in reports_])
-    reports_df = [100 * pd.DataFrame(i)[label_order].loc[['precision', 'recall', 'f1-score', 'support']] for i in
-                  reports_]
+def obtain_accumulated_metrics(reports_, metric='median', label_order=None, rounded=True):
+    """
+    Function to create summary statistics of the classification reports obtained by the cross validation of
+    the multiband model.
 
+    Inputs:
+    reports_ (list): List of dictionaries. Each dictionary is the output of sklearn's classification report, using the return_dict flag set to True.
+    metric (str): String to select mean or median metrics. Median by default.
+    label_order (list): List of strings, where each one is a class of the survey.
+
+    Returns:
+    The central and dispersion classification reports. 
+        For metric='mean' returns mean and std values for each metric and class.
+        For metric='median', returns the median, first and third quartiles.
+    """
+    # Transform the reports into a list of dataframes.
+    reports_df = [pd.DataFrame(i)[label_order].loc[['precision', 'recall', 'f1-score', 'support']] for i in
+                  reports_]
+    # # Multiplies by 100 to have percentage, except the support
+    # mult = np.array([100,100,100,1]).reshape(-1,1)
+    # reports_df = [ i*mult for i in reports_df]
+    
+    reports_np = np.array(reports_df)
+    
+    # Extract index and column names to report a single table
     index_ = reports_df[0].index
     columns_ = reports_df[0].columns
-
+    # Get different statistics
     if metric == 'mean':
         summary = np.mean(reports_np, axis=0)
         summary_pos = np.std(reports_np, axis=0)
@@ -105,6 +133,9 @@ def obtain_accumulated_metrics(reports_, metric='mean', label_order=None):
 
         summary = pd.DataFrame(data=summary, index=index_, columns=columns_)
         summary_pos = pd.DataFrame(data=summary_pos, index=index_, columns=columns_)
+        # If rounded=True, return it rounded with 2 decimals.
+        if rounded:
+            summary = summary.round(2)
         return summary, summary_pos
     elif metric == 'median':
         summary = np.median(reports_np, axis=0)
@@ -117,6 +148,9 @@ def obtain_accumulated_metrics(reports_, metric='mean', label_order=None):
         summary = pd.DataFrame(data=summary, index=index_, columns=columns_)
         summary_pos = pd.DataFrame(data=summary_pos, index=index_, columns=columns_)
         summary_neg = pd.DataFrame(data=summary_neg, index=index_, columns=columns_)
+        # If rounded=True, return it rounded with 2 decimals.
+        if rounded:
+            summary = summary.round(2)
         return summary, summary_pos, summary_neg
     else:
         return None
@@ -194,9 +228,9 @@ def plot_confusion_matrix(cm_folds,
             pos = round(cm_pos[i, j], 1)
             neg = round(cm_neg[i, j], 1)
 
-            super_text = f'${pos}}}$'
+            super_text = f'${pos}$'
             middle = f'${center}$'
-            sub_text = f'${neg}}}$'
+            sub_text = f'${neg}$'
 
             # Small shift in x to accommodate the super/sub scripts
             mid_text = plt.text(j - 0.075, i + 0.075, middle, horizontalalignment="center",
@@ -273,3 +307,174 @@ def plot_confusion_matrix(cm_folds,
     plt.tight_layout()
     if save_path is not None:
         plt.savefig(save_path, format='pdf', dpi=300, bbox_inches='tight')
+
+def plot_confusion_matrix_1col(cm_folds,
+                          labels_,
+                          title='Confusion matrix',
+                          statistic='mean',
+                          survey=None,
+                          cmap=plt.cm.Greens,
+                          save_path=None,
+                          nep=0,
+                          ):
+    """ This function prints and plots the confusion matrix.
+    Normalization can be applied by setting `normalize=True`.
+    """
+    cm_folds = 100 * np.array(cm_folds)
+    font = {'family': 'serif',
+            'weight': 'normal',
+            'serif': ['Times New Roman'] + plt.rcParams['font.serif']}
+    plt.clf()
+    np.set_printoptions(precision=2)
+    # Define the figure
+    fig, ax = plt.subplots(figsize=(10, 10), dpi=250)
+
+    # Define the font sizes for printing
+    small_size = 20
+    medium_size = 25
+    bigger_size = 30
+    
+    # Get the number of classes from the number of labels
+    num_classes = len(labels_)
+    # Define the font sizes of the plot
+    plt.rc('font', size=small_size, **font)  # controls default text sizes
+    plt.rc('axes', titlesize=medium_size)  # fontsize of the axes title
+    plt.rc('axes', labelsize=bigger_size)  # fontsize of the x and y labels
+    plt.rc('xtick', labelsize=small_size)  # fontsize of the tick labels
+    plt.rc('ytick', labelsize=small_size)  # fontsize of the tick labels
+    plt.rc('legend', fontsize=small_size)  # legend fontsize
+    plt.rc('figure', titlesize=bigger_size)  # fontsize of the figure title
+
+    # Set the tick properties
+    tick_marks = np.arange(num_classes)
+    # Define the ticks and rotate them to fit them in one column
+    plt.xticks(tick_marks, [i for i in labels_], rotation=45)
+    plt.yticks(tick_marks, [i for i in labels_], rotation=55, va='center', position=(0.0, -1.1))
+    
+    # Compute the confussion matrix depending on the mode
+    if statistic == 'median':
+        center_cm = np.median(cm_folds, axis=0)
+        q_25 = np.quantile(cm_folds, 0.25, axis=0)
+        q_75 = np.quantile(cm_folds, 0.75, axis=0)
+
+        cm_pos = q_75 - center_cm
+        cm_neg = center_cm - q_25
+    else:
+        # If statistic is not mean, print warning and compute mean
+        if statistic != 'mean':
+            print('Statistic not define, use mean or median. Using mean as default.')
+        # Compute mean as default
+        center_cm = np.mean(cm_folds, axis=0)
+        std_cm = np.std(cm_folds, axis=0)
+
+        cm_test = 100.0 * np.array(cm_folds)
+
+        cm_pos = std_cm
+        cm_neg = std_cm
+    # Display the figure
+    im = ax.imshow(center_cm, interpolation='nearest', cmap=cmap, vmin=0, vmax=100)
+    fig.canvas.draw()
+    tt = fig.gca().transData.inverted()
+
+    # Define the bounding boxes
+    if survey == 'Gaia':
+        # Horizontal Upper RR Lyrae
+        plt.hlines(2.5, 2.5, 4.5, alpha=1, lw=2, color='black')
+        # Horizontal Lower RR Lyrae
+        plt.hlines(4.5, 2.5, 4.5, alpha=1, lw=2, color='black')
+        # Vertical Left RR Lyrae
+        plt.vlines(2.5, 2.5, 4.5, alpha=1, lw=2, color='black')
+        # Vertical Right RR Lyrae
+        plt.vlines(4.5, 2.5, 4.5, alpha=1, lw=2, color='black')
+
+        # Horizontal  CEP
+        # Horizontal Upper CEP
+        plt.hlines(1.5, -0.5, 1.5, alpha=1, lw=2, color='black')
+        # Vertical Left CEP
+        # Vertical Right CEP
+        plt.vlines(1.5, -0.5, 1.5, alpha=1, lw=2, color='black')
+    elif survey == 'ZTF':
+        # Horizontal Lower Transients
+        plt.hlines(0.5, -0.5, 0.5, alpha=1, lw=2, color='black')
+        # Vertical Right Transients
+        plt.vlines(0.5, 0.5, -0.5, alpha=1, lw=2, color='black')
+
+        # Horizontal Lower Stochastic
+        plt.hlines(5.5, 0.5, 5.5, alpha=1, lw=2, color='black')
+        # Horizontal Upper Stochastic
+        plt.hlines(0.5, 0.5, 5.5, alpha=1, lw=2, color='black')
+        # Vertical Left Stochastic
+        plt.vlines(0.5, 0.5, 5.5, alpha=1, lw=2, color='black')
+        # Vertical Right Stochastic
+        plt.vlines(5.5, 0.5, 5.5, alpha=1, lw=2, color='black')
+
+        # Horizontal Upper Periodic
+        plt.hlines(5.5, 5.5, 8.5, alpha=1, lw=2, color='black')
+        # Vertical Left Periodic
+        plt.vlines(5.5, 5.5, 8.5, alpha=1, lw=2, color='black')
+
+        # Redefine the font size to adjust the 1column requirement
+        small_size=16.5
+    elif survey == 'PanStarrs':
+        # Horizontal Lower RRL
+        plt.hlines(1.5, 1.5, 4.5, alpha=1, lw=2, color='black')
+        # Horizontal Upper RRL
+        plt.hlines(4.5, 1.5, 4.5, alpha=1, lw=2, color='black')
+        # Vertical Left RRL
+        plt.vlines(1.5, 1.5, 4.5, alpha=1, lw=2, color='black')
+        # Vertical Right RRL
+        plt.vlines(4.5, 1.5, 4.5, alpha=1, lw=2, color='black')    
+
+    # Define the text on each box
+    for i, j in itertools.product(range(num_classes), range(num_classes)):
+        if center_cm[i, j] >= 1e-1:
+            center = round(center_cm[i, j], 1)
+            pos = round(cm_pos[i, j], 1)
+            neg = round(cm_neg[i, j], 1)
+
+            super_text = f'${pos}$'
+            middle = f'${center}$'
+            sub_text = f'${neg}$'
+
+            # Small shift in x to accommodate the super/sub scripts
+            mid_text = plt.text(j - 0.075, i + 0.075, middle, horizontalalignment="center",
+                                fontdict={'fontsize': small_size}, bbox={'alpha': 0.0, 'lw': 0, 'pad': 0}
+                                , color="white" if center_cm[i, j] > 80 else "black")
+
+            new_coords = tt.transform_bbox(mid_text.get_window_extent()).get_points()
+
+            if statistic == 'mean':
+                sub_text = f''
+
+            sup_text = plt.text(new_coords[1, 0] - 0.115, new_coords[1, 1] - 0.01, super_text,
+                                verticalalignment='bottom', horizontalalignment="left",
+                                fontdict={'fontsize': small_size - 3}
+                                , color="white" if center_cm[i, j] > 80 else "black")
+            bot_text = plt.text(new_coords[1, 0] - 0.115, new_coords[0, 1] - 0.01, sub_text, verticalalignment='top',
+                                horizontalalignment="left", fontdict={'fontsize': small_size - 3}
+                                , color="white" if center_cm[i, j] > 80 else "black")
+
+        elif center_cm[i, j] > 0:
+            plt.text(j, i, '$<0.01$', horizontalalignment="center"
+                     , color="black", fontdict={'size': small_size - 2, 'weight': 'normal'})
+
+    
+    
+    # Define the x and y labels text and positions
+    ax.set_ylabel('True label', labelpad=-20)
+    ax.set_xlabel('Predicted label')
+    
+    # Set the color bar
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("top", size="5%", pad=0.05)
+
+    cbar = plt.colorbar(im, cax=cax, orientation='horizontal')
+    cbar.ax.xaxis.set_ticks_position('top')  # Move ticks to the top
+    plt.tight_layout()
+                 
+    # Tight layour for printing
+    # plt.tight_layout()
+    if save_path is not None:
+        plt.savefig(save_path, format='pdf', dpi=300, bbox_inches='tight', pad_inches=0)
+        
+        

@@ -57,7 +57,7 @@ def process_lc(cls_,
                w,
                s,
                n_bands,
-               max_N=np.inf,
+               max_n=np.inf,
                ):
     """Process one single element, to be excecuted in parallel.
     "matrices" must be and object containing all the information used for input.
@@ -103,7 +103,7 @@ def process_lc(cls_,
     # print(ID)
     for b in range(n_bands):
         # Cut to a max_n values per band
-        data_[b] = data_[b][:max_N + 2, :]
+        data_[b] = data_[b][:max_n + 2, :]
 
         # Extract time and mag to compute deltas
         sel = data_[b][:, [0, 1]]

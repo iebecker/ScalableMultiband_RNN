@@ -2,11 +2,11 @@ import os
 import pickle
 from json import dump
 
-import base.Utils as utils
+import ScalableLib.base.Utils as utils
 import numpy as np
 import pandas as pd
 import tensorflow as tf
-from classifier.CustomScalers import ParamPhysScaler
+from ScalableLib.classifier.CustomScalers import ParamPhysScaler
 from joblib import Parallel, delayed
 from numpy.random import shuffle
 from sklearn.model_selection import train_test_split
@@ -39,7 +39,7 @@ class prepData:
 
         # Impose a minimum of points per light curve per band
         self.min_n = min_n
-        self.max_N = max_n
+        self.max_n = max_n
 
         # Container for the data
         self.labels = []
@@ -309,7 +309,7 @@ class prepData:
                                                                           self.w,
                                                                           self.s,
                                                                           self.n_bands,
-                                                                          self.max_N,
+                                                                          self.max_n,
                                                                           ) for l in tqdm(sel))
 
             all_processed.append(processed)
@@ -380,14 +380,27 @@ class prepData:
         self.scalers = {}
         df = pd.DataFrame(list(self.dict_train['Physical_Values']))
         for var in self.params_phys:
-            nonzero = df[var]
-            b = nonzero > 0
-            nonzero = nonzero[b]
+            param_series = df[var]
+            # b = nonzero > 0
+            # nonzero = nonzero[b]
 
             self.scalers[var] = ParamPhysScaler(param=var,
                                                 mask_value=self.mask_value,
                                                 )
-            self.scalers[var].fit(nonzero.values.reshape(-1, 1))
+            # Fits the values if needed
+            self.scalers[var].fit(param_series.values.reshape(-1, 1))
+
+    def save_scalers(self)->None:
+        """Store the scalers using the CustomScalers class"""
+
+        # Define the path of the folder
+        path = os.path.join(self.save_dir, 'scalers')
+        # Create the path if already not created
+        if not os.path.exists(path):
+            os.mkdir(path)
+        # For each physical apram, save its scaler
+        for param in self.params_phys:
+            self.scalers[param].save_scaler(path_folder_scalers=path)        
 
     def scalers_transform(self, dict_transform):
         # Create a DataFrame to transform the data at once
@@ -399,9 +412,7 @@ class prepData:
                                                   ).ravel()
 
         # Save scalers
-        path = self.save_dir + 'scalers.pkl'
-        with open(path, 'wb') as fp:
-            pickle.dump(self.scalers, fp)
+        self.save_scalers()
 
         # Return to the dict_transform representation
         reverse = df.transpose().to_dict()
@@ -557,52 +568,52 @@ class prepData:
                     # Write it to a file
                     writer.write(ex.SerializeToString())
 
-    def shard_serialize_parallel(self,
-                                 dict,
-                                 fold,
-                                 elements_per_shard=5000,
-                                 ):
-        """Serialize objects given the data and path,
-        splitting them into shards."""
-        # Create the folders to store the shards
-        fold_dir = '/'.join([self.save_dir, fold])
-        if not os.path.exists(fold_dir):
-            os.makedirs(fold_dir)
+    # def shard_serialize_parallel(self,
+    #                              dict,
+    #                              fold,
+    #                              elements_per_shard=5000,
+    #                              ):
+    #     """Serialize objects given the data and path,
+    #     splitting them into shards."""
+    #     # Create the folders to store the shards
+    #     fold_dir = '/'.join([self.save_dir, fold])
+    #     if not os.path.exists(fold_dir):
+    #         os.makedirs(fold_dir)
 
-        keys = dict.keys()
+    #     keys = dict.keys()
 
-        # Number of objects in the split
-        N = len(dict['ID'])
-        # Compute the number of shards
-        n_shards = -np.floor_divide(N, -elements_per_shard)
-        # Number of characters of the number of shards
-        name_length = len(str(n_shards))
+    #     # Number of objects in the split
+    #     N = len(dict['ID'])
+    #     # Compute the number of shards
+    #     n_shards = -np.floor_divide(N, -elements_per_shard)
+    #     # Number of characters of the number of shards
+    #     name_length = len(str(n_shards))
 
-        # Create one file per shard
-        shard_paths = []
-        for shard in range(n_shards):
-            # Get the shard number padded with 0s
-            shard_name = str(shard + 1).rjust(name_length, '0')
-            # Get the shard store name
-            shard_name = '_'.join([fold, shard_name, str(n_shards)])
-            # Add the extension
-            shard_name = shard_name + '.tfrecord'
-            # Get the shard save path
-            shard_path = '/'.join([self.save_dir, fold, shard_name])
-            shard_paths.append(shard_path)
+    #     # Create one file per shard
+    #     shard_paths = []
+    #     for shard in range(n_shards):
+    #         # Get the shard number padded with 0s
+    #         shard_name = str(shard + 1).rjust(name_length, '0')
+    #         # Get the shard store name
+    #         shard_name = '_'.join([fold, shard_name, str(n_shards)])
+    #         # Add the extension
+    #         shard_name = shard_name + '.tfrecord'
+    #         # Get the shard save path
+    #         shard_path = '/'.join([self.save_dir, fold, shard_name])
+    #         shard_paths.append(shard_path)
 
-        Parallel(self.njobs, backend='threading')(delayed(aux_serialize)(shard,
-                                                                         shard_path,
-                                                                         elements_per_shard,
-                                                                         list(keys),
-                                                                         N,
-                                                                         dict)
-                                                  for shard, shard_path in tqdm(enumerate(shard_paths)))
+    #     Parallel(self.njobs, backend='threading')(delayed(aux_serialize)(shard,
+    #                                                                      shard_path,
+    #                                                                      elements_per_shard,
+    #                                                                      list(keys),
+    #                                                                      N,
+    #                                                                      dict)
+    #                                               for shard, shard_path in tqdm(enumerate(shard_paths)))
 
     def write_metadata_process(self):
         """Write metadata into a file."""
         self.metadata = {'w': self.w, 's': self.s, 'Max per class': self.max_l, 'Min per class': self.min_l,
-                         'Max points per lc': self.max_N, 'Min points per lc': self.min_n,
+                         'Max points per lc': self.max_n, 'Min points per lc': self.min_n,
                          'Number of classes': self.num_classes, 'Train fraction': self.train_size,
                          'Test fraction': self.test_size, 'Val fraction': self.val_size,
                          'Classes Info': self.splits_metadata, 'Number of bands': self.n_bands,
