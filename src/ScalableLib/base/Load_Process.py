@@ -599,21 +599,26 @@ class PrepData:
                 writer.write(ex.SerializeToString())
 
     def shard_serialize(self,
-                        dict,
-                        fold,
-                        elements_per_shard=5000,
-                        ):
-        """Serialize objects given the data and path,
-        splitting them into shards."""
+                        dataset: Dict[str, np.ndarray],
+                        fold: str,
+                        elements_per_shard: int = 5000,
+                        ) -> None:
+        """Serializes a dataset into TFRecord on multiple shards.
+
+        Args:
+            dataset (Dict[str, np.ndarray]): Dictionary containing data to serialize.
+            fold (str): Dataset type ('train', 'test', or 'val').
+            elements_per_shard (int, optional): Number of samples per shard. Defaults to 5000.
+        """
         # Create the folders to store the shards
         fold_dir = '/'.join([self.save_dir, fold])
         if not os.path.exists(fold_dir):
             os.makedirs(fold_dir)
 
-        keys = dict.keys()
+        keys = dataset.keys()
 
         # Number of objects in the split
-        N = len(dict['ID'])
+        N = len(dataset['ID'])
         # Compute the number of shards
         n_shards = -np.floor_divide(N, -elements_per_shard)
         # Number of characters of the number of shards
@@ -638,7 +643,7 @@ class PrepData:
                     if ii > N - 1:
                         break
                     # Get one example in the form of a dict_transform
-                    temp = {key: dict[key][ii] for key in keys}
+                    temp = {key: dataset[key][ii] for key in keys}
                     # Obtain the serialized example
                     ex = self.__func_serialize(temp)
                     # Write it to a file
