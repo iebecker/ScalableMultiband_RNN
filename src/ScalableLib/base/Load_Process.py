@@ -1,6 +1,7 @@
 import os
 import pickle
 from json import dump
+from typing import Any, Dict, List, Optional, Tuple
 
 import ScalableLib.base.Utils as utils
 import numpy as np
@@ -13,20 +14,37 @@ from sklearn.model_selection import train_test_split
 from tqdm import tqdm
 
 
-class prepData:
-    """Class that implements functions prepare, read, transform and save the data"""
+class PrepData:
+    """Class for preparing, reading, transforming, and saving light curve data.
 
+        This class provides functionality for:
+        - Reading datasets
+        - Filtering data based on class-specific conditions
+        - Splitting into train, validation, and test sets
+        - Scaling and serializing datasets for use in deep learning models
+        """
     def __init__(self,
-                 max_l=40000,
-                 min_l=500,
-                 min_n=10,
-                 w=2,
-                 s=1,
-                 njobs=7,
-                 n_bands=2,
-                 max_n=None,
+                 max_l: int = 40000,
+                 min_l: int = 500,
+                 min_n: int = 10,
+                 max_n: int = None,
+                 w: int = 2,
+                 s: int = 1,
+                 njobs: int = 7,
+                 n_bands: int = 2,
                  ):
+        """Initializes the data preparation class with user-defined parameters.
 
+        Args:
+            max_l (int): Maximum number of light curves per class.
+            min_l (int): Minimum number of light curves per class.
+            min_n (int): Minimum number of data points per light curve per band.
+            w (int): Window size for constructing the light curve representation.
+            s (int): Step size for constructing time-series representation.
+            njobs (int): Number of parallel jobs to use for computation.
+            n_bands (int): Number of photometric bands to consider.
+            max_n (int): Maximum number of points per light curve.
+        """
         # Impose number of min and max light curves per class
         self.data_val = None
         self.classes = None
@@ -60,23 +78,35 @@ class prepData:
         self.mask_value = -99.99
 
     def set_execution_variables(self,
-                                file_train,
-                                file_val,
-                                file_test,
-                                save_dir,
-                                dataset_header,
-                                train_size,
-                                val_size,
-                                test_size,
-                                lc_parameters,
-                                params_phys,
-                                params_phys_est,
-                                elements_per_shard,
+                                file_train: str,
+                                save_dir: str,
+                                dataset_header: List[str],
+                                train_size: float,
+                                val_size: float,
+                                test_size: float,
+                                lc_parameters: Dict[str, Any],
+                                elements_per_shard: int,                                
+                                params_phys: List[str],
+                                params_phys_est: List[str],
+                                file_val: Optional[str] = None,
+                                file_test: Optional[str] = None,                                
                                 ):
+        """Defines paths, dataset parameters, and splitting configuration.
 
-        """Defines paths and split information.
-        This function separates the object itself with the different
-        executions of the object."""
+        Args:
+            file_train (str): Path to the training dataset metadata.
+            file_val (Optional[str]): Path to the validation dataset metadata.
+            file_test (Optional[str]): Path to the test dataset metadata.
+            save_dir (str): Directory where processed files will be stored.
+            dataset_header (List[str]): List of column names in the dataset.
+            train_size (float): Fraction of the dataset to use for training.
+            val_size (float): Fraction of the dataset to use for validation. If file_val is defined, this parameter is not used.
+            test_size (float): Fraction of the dataset to use for testing. If file_test is defined, this parameter is not used.
+            lc_parameters (Dict[str, Any]): Dictionary containing the arguments for the Pandas read function.
+            elements_per_shard (int): Number of samples per shard in TFRecord serialization.
+            params_phys (List[str]): List of physical parameters to be used for regression. Column of the metadata.
+            params_phys_est (List[str]): Column of the metadata. Lists the physical parameters with an initial guess. Not used in this version.
+        """
 
         # Addresses to store the model and related info
         self.lc_parameters = lc_parameters
@@ -99,6 +129,7 @@ class prepData:
         # Regression files
         self.params_phys = params_phys
         self.params_phys_est = params_phys_est
+
         # Splits fractions
         self.train_size = train_size
         self.test_size = test_size
