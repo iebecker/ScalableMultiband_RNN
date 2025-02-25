@@ -241,20 +241,30 @@ class PrepData:
         data = pd.concat(dfs)
         return data
 
-    def __parallel_read_util(self, _data_):
-        """Reads un parallel light curves in _data_."""
+    def __parallel_read_util(self, data: pd.DataFrame) -> List[Tuple[Any, str, str, Any, Any]]:
+        """Reads light curves in parallel using multiple processes.
 
+        Args:
+            data (pd.DataFrame): A dataset containing light curve metadata.
+
+        Returns:
+            List[Tuple[Any, str, str, Any, Any]]: A list of tuples where:
+                - First element is the processed light curve data.
+                - Second element is the class label.
+                - Third element is the ID.
+                - Fourth & fifth elements are physical parameters.
+        """
         read_cols = ['Path',
                      'Class',
                      'ID'
                      ]
         read_cols = [read_cols, self.params_phys, self.params_phys_est]
         # Filter;Time;Mag;Mag_err;Order
-        ext = Parallel(self.njobs)(delayed(self.__func_read)(_data_.iloc[i],
+        ext = Parallel(self.njobs)(delayed(self.__func_read)(data.iloc[i],
                                                              read_cols,
                                                              self.lc_parameters,
                                                              self.n_bands,
-                                                             ) for i in tqdm(range(_data_.shape[0])))
+                                                             ) for i in tqdm(range(data.shape[0])))
         return ext
 
     def __sort_lcs_util(self, read_lcs):
