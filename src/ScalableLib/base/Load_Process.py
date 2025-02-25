@@ -330,15 +330,21 @@ class PrepData:
             self.lcs_val = self.__sort_lcs_util(self.read_lcs_val)
             self.lcs_test = self.__sort_lcs_util(self.read_lcs_test)
 
-    def parallel_process(self):
-        """Extracts the data and transform it into matrix representation."""
+    def parallel_process(self) -> None:
+        """Processes the dataset into a matrix representation using parallel execution.
+
+        Calls either `parallel_process_default` or `parallel_process_custom`
+        based on the dataset split type.
+        """        
         if self.default_split:
             self.parallel_process_default()
         else:
             self.parallel_process_custom()
 
     def parallel_process_custom(self):
-        """Extracts the data from each split and transform it into matrix representation.
+        """Extracts the data and transform it into matrix representation for custom splits.
+        
+        - Uses parallel processing to transform light curve data into matrix format.
         """
         if self.custom_test_split:
             out_dict_train = self.__process_lcs_util(self.lcs_train)
@@ -393,10 +399,12 @@ class PrepData:
 
         return output_dict
 
-    def parallel_process_default(self):
-        """Extracts the data and transform it into matrix representation.
-        New in version 2"""
-
+    def parallel_process_default(self) -> None:    
+        """Processes light curves in the default dataset split.
+        
+        - Shuffles the processed dataset.
+        - Uses parallel processing to transform light curve data into matrix format.
+        """
         out_dict = self.__process_lcs_util(self.lcs)
 
         self.shuffled_dict = self.__process_shuffle_util(out_dict)
