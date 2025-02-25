@@ -267,10 +267,25 @@ class PrepData:
                                                              ) for i in tqdm(range(data.shape[0])))
         return ext
 
-    def __sort_lcs_util(self, read_lcs):
-        """Create a dictionary, where each class is the key, the id and
-        light curve itself are stored in a list, as values."""
+    def __sort_lcs_util(self, 
+                        read_lcs: List[Tuple[Any, str, str, Any, Any]]
+                        ) -> Dict[str, List[List[Any]]]:
+        """Organizes light curves into a dictionary grouped by class.
 
+        Args:
+            read_lcs (List[Tuple[Any, str, str, Any, Any]]): List containing read light curves,
+                where each entry consists of:
+                - The light curve data (Any)
+                - Class label (str)
+                - ID (str)
+                - Physical parameters (Any)
+                - Estimated physical parameters (Any)
+
+        Returns:
+            Dict[str, List[List[Any]]]: Dictionary where:
+                - Keys are class labels.
+                - Values are lists containing light curve data, ID, physical parameters, and estimated parameters.
+        """
         # Create a dictionary by class
         lcs = {c: [] for c in self.classes}
         # For each class,
@@ -419,20 +434,39 @@ class PrepData:
         self.shuffled_dict = self.__process_shuffle_util(out_dict)
 
     @staticmethod
-    def __process_shuffle_util(dict):
-        """Shuffles the data."""
+    def __process_shuffle_util(dataset: Dict[str, np.ndarray]) -> Dict[str, np.ndarray]:
+        """Shuffles dataset entries while maintaining correspondence across feature arrays.
+
+        Args:
+            dataset (Dict[str, np.ndarray]): Dictionary where each key corresponds to a data field.
+
+        Returns:
+            Dict[str, np.ndarray]: The shuffled dataset with the same structure.
+        """
         # Get the keys
-        keys = list(dict.keys())
+        keys = list(dataset.keys())
         # Get integer from 0 to the number of elements-1
-        ind = np.arange(dict[keys[0]].shape[0])
+        ind = np.arange(dataset[keys[0]].shape[0])
         # Shuffle the integers
         shuffle(ind)
         # Shuffle each element of the dict_transform
         for i in keys:
-            dict[i] = dict[i][ind]
-        return dict
+            dataset[i] = dataset[i][ind]
+        return dataset
 
-    def indices_custom_test(self, train_ids, val_ids):
+    def indices_custom_test(self, 
+                            train_ids: List[str], 
+                            val_ids: List[str]
+                            ) -> Tuple[List[int], List[int]]:
+        """Maps custom test split IDs to their corresponding indices in the dataset.
+
+        Args:
+            train_ids (List[str]): List of training set IDs.
+            val_ids (List[str]): List of validation set IDs.
+
+        Returns:
+            Tuple[List[int], List[int]]: Indices of training and validation samples.
+        """                            
         ind = range(len(self.dict_train['ID']))
         ind_dict = dict(zip(self.dict_train['ID'], ind))
 
@@ -440,8 +474,21 @@ class PrepData:
         ind_val = list(map(ind_dict.get, val_ids))
         return ind_train, ind_val
 
-    def indices_default(self, train_ids, val_ids, test_ids):
+    def indices_default(self, 
+                        train_ids: List[str], 
+                        val_ids: List[str], 
+                        test_ids: List[str]
+                        ) -> Tuple[List[int], List[int], List[int]]:
+        """Maps default train-validation-test split IDs to their dataset indices.
 
+        Args:
+            train_ids (List[str]): List of training set IDs.
+            val_ids (List[str]): List of validation set IDs.
+            test_ids (List[str]): List of test set IDs.
+
+        Returns:
+            Tuple[List[int], List[int], List[int]]: Indices for train, test, and validation samples.
+        """
         ind = range(len(self.shuffled_dict['ID']))
         ind_dict = dict(zip(self.shuffled_dict['ID'], ind))
 
@@ -478,7 +525,17 @@ class PrepData:
         for param in self.params_phys:
             self.scalers[param].save_scaler(path_folder_scalers=path)        
 
-    def scalers_transform(self, dict_transform):
+    def scalers_transform(self, 
+                          dict_transform: Dict[str, np.ndarray]
+                          ) -> Dict[str, np.ndarray]:
+        """Applies fitted scalers to the dataset.
+
+        Args:
+            dict_transform (Dict[str, np.ndarray]): Dictionary containing physical parameters.
+
+        Returns:
+            Dict[str, np.ndarray]: Scaled dataset with transformed physical values.
+        """        
         # Create a DataFrame to transform the data at once
         df = pd.DataFrame(list(dict_transform['Physical_Values']))
 
@@ -496,7 +553,12 @@ class PrepData:
 
         return dict_transform
 
-    def split_custom_test(self):
+    def split_custom_test(self) -> None:
+        """Splits the dataset into training and validation sets when a custom test split is provided.
+
+        - Stratifies data based on class labels.
+        - Calls `indices_custom_test` to retrieve dataset indices.
+        """
         self.data_train = self.data_train.set_index('ID')
 
         train_ids, val_ids = train_test_split(self.data_train.index.values,
@@ -513,7 +575,12 @@ class PrepData:
             self.dict_val[key] = self.dict_train[key][ind_val]
             self.dict_train[key] = self.dict_train[key][ind_train]
 
-    def split_default(self):
+    def split_default(self) -> None:
+        """Splits the dataset into train, validation, and test sets using default proportions.
+
+        - Stratifies splits by class to maintain class distributions.
+        - Calls `indices_default` to retrieve dataset indices.
+        """        
         self.data_train = self.data_train.set_index('ID')
 
         train_ids, test_val_ids = train_test_split(
@@ -537,15 +604,23 @@ class PrepData:
             self.dict_test[key] = self.shuffled_dict[key][ind_test]
             self.dict_val[key] = self.shuffled_dict[key][ind_val]
 
-    def split(self):
-        """ Split the data intro train-test-val according to the experimental setup.
-        """
+    def split(self) -> None:
+        """Splits the dataset into train, validation, and test sets based on configuration.
+
+        - Uses `split_default()` for automatic dataset partitioning.
+        - Uses `split_custom_test()` if only training and test sets are defined.
+        """        
         if self.default_split:
             self.split_default()
         elif self.custom_test_split:
             self.split_custom_test()
 
-    def scale_datasets(self):
+    def scale_datasets(self) -> None:
+        """Fits scalers and transforms physical parameters.
+
+        - Fits scalers on training data.
+        - Applies scaling to train, validation, and test datasets.
+        """        
         # Fit the scalers
         self.fit_scalers()
         # Transform the datasets
@@ -599,21 +674,26 @@ class PrepData:
                 writer.write(ex.SerializeToString())
 
     def shard_serialize(self,
-                        dict,
-                        fold,
-                        elements_per_shard=5000,
-                        ):
-        """Serialize objects given the data and path,
-        splitting them into shards."""
+                        dataset: Dict[str, np.ndarray],
+                        fold: str,
+                        elements_per_shard: int = 5000,
+                        ) -> None:
+        """Serializes a dataset into TFRecord on multiple shards.
+
+        Args:
+            dataset (Dict[str, np.ndarray]): Dictionary containing data to serialize.
+            fold (str): Dataset type ('train', 'test', or 'val').
+            elements_per_shard (int, optional): Number of samples per shard. Defaults to 5000.
+        """
         # Create the folders to store the shards
         fold_dir = '/'.join([self.save_dir, fold])
         if not os.path.exists(fold_dir):
             os.makedirs(fold_dir)
 
-        keys = dict.keys()
+        keys = dataset.keys()
 
         # Number of objects in the split
-        N = len(dict['ID'])
+        N = len(dataset['ID'])
         # Compute the number of shards
         n_shards = -np.floor_divide(N, -elements_per_shard)
         # Number of characters of the number of shards
@@ -638,20 +718,35 @@ class PrepData:
                     if ii > N - 1:
                         break
                     # Get one example in the form of a dict_transform
-                    temp = {key: dict[key][ii] for key in keys}
+                    temp = {key: dataset[key][ii] for key in keys}
                     # Obtain the serialized example
                     ex = self.__func_serialize(temp)
                     # Write it to a file
                     writer.write(ex.SerializeToString())
 
-    def write_metadata_process(self):
-        """Write metadata into a file."""
-        self.metadata = {'w': self.w, 's': self.s, 'Max per class': self.max_l, 'Min per class': self.min_l,
-                         'Max points per lc': self.max_n, 'Min points per lc': self.min_n,
-                         'Number of classes': self.num_classes, 'Train fraction': self.train_size,
-                         'Test fraction': self.test_size, 'Val fraction': self.val_size,
-                         'Classes Info': self.splits_metadata, 'Number of bands': self.n_bands,
-                         'Physical_parameters': self.params_phys, 'Physical_parameters_est': self.params_phys_est}
+    def write_metadata_process(self) -> None:
+        """Writes dataset metadata and preprocessing details to a JSON file.
+
+        Saves information about:
+        - Data split proportions
+        - Number of classes
+        - Physical parameters used
+        - Light curve read parameters
+        """        
+        self.metadata = {'w': self.w, 
+                         's': self.s, 
+                         'Max per class': self.max_l, 
+                         'Min per class': self.min_l,
+                         'Max points per lc': self.max_n, 
+                         'Min points per lc': self.min_n,
+                         'Number of classes': self.num_classes, 
+                         'Train fraction': self.train_size,
+                         'Test fraction': self.test_size, 
+                         'Val fraction': self.val_size,
+                         'Classes Info': self.splits_metadata, 
+                         'Number of bands': self.n_bands,
+                         'Physical_parameters': self.params_phys, 
+                         'Physical_parameters_est': self.params_phys_est}
 
         path = self.save_dir + 'metadata_preprocess.json'
         with open(path, 'w') as fp:
@@ -659,7 +754,15 @@ class PrepData:
         # Save the light curve parameters for the pandas call
         np.savez(self.save_dir + 'lc_parameters', lc_parameters=self.lc_parameters)
 
-    def cls_metadata(self, labels):
+    def cls_metadata(self, labels: np.ndarray) -> Dict[str, str]:
+        """Computes class distribution metadata.
+
+        Args:
+            labels (np.ndarray): Array of class labels.
+
+        Returns:
+            Dict[str, str]: Dictionary mapping class names to their respective sample counts.
+        """        
         keys, values = np.unique(labels, return_counts=True)
         values = [str(v1) for v1 in values]
         keys = [self.trans_inv[k] for k in keys]
@@ -667,9 +770,12 @@ class PrepData:
 
         return hist
 
-    def get_metadata_split(self):
-        """Get the metadata of each split."""
+    def get_metadata_split(self) -> None:
+        """Generates metadata for each dataset split.
 
+        - Computes class distributions for train, test, and validation sets.
+        - Stores metadata in `self.splits_metadata`.
+        """
         splits_labels = [
             self.dict_train['Label'],
             self.dict_test['Label'],
@@ -683,20 +789,43 @@ class PrepData:
         self.splits_metadata = metadata
 
     def prepare(self,
-                file_train,
-                file_val,
-                file_test,
-                save_dir,
-                dataset_header,
-                params_phys=None,
-                params_phys_est=None,
-                train_size=0.70,
-                val_size=0.10,
-                test_size=0.2,
-                lc_parameters=None,
-                elements_per_shard=5000,
-                ):
+                file_train: str,
+                save_dir: str,
+                dataset_header: List[str],
+                file_val: Optional[str] = None,
+                file_test: Optional[str] = None,
+                params_phys: Optional[List[str]] = None,
+                params_phys_est: Optional[List[str]] = None,
+                train_size: float = 0.70,
+                val_size: float = 0.10,
+                test_size: float = 0.20,
+                lc_parameters: Optional[Dict[str, Any]] = None,
+                elements_per_shard: int = 5000
+                ) -> None:                
+        """Executes the full data preparation pipeline.
 
+        This method:
+        1. Sets execution variables.
+        2. Reads and processes datasets.
+        3. Splits the data into train, validation, and test sets.
+        4. Applies scaling and normalization.
+        5. Serializes datasets into TFRecords.
+        6. Writes metadata.
+
+        Args:
+            file_train (str): Path to the training dataset.
+            file_val (Optional[str]): Path to the validation dataset.
+            file_test (Optional[str]): Path to the test dataset.
+            save_dir (str): Directory to store processed files.
+            dataset_header (List[str]): Column names in the dataset.
+            params_phys (Optional[List[str]]): List of physical parameters for scaling.
+            params_phys_est (Optional[List[str]]): List of estimated physical parameters.
+            train_size (float): Proportion of training data.
+            val_size (float): Proportion of validation data.
+            test_size (float): Proportion of test data.
+            lc_parameters (Optional[Dict[str, Any]]): Parameters for light curve processing.
+            elements_per_shard (int): Number of samples per shard in TFRecord serialization.
+        """
         if params_phys_est is None:
             params_phys_est = []
         if params_phys is None:
