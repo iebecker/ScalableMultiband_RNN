@@ -90,7 +90,7 @@ class PrepData:
                                 params_phys_est: List[str],
                                 file_val: Optional[str] = None,
                                 file_test: Optional[str] = None,                                
-                                ):
+                                ) -> None:
         """Defines paths, dataset parameters, and splitting configuration.
 
         Args:
@@ -158,12 +158,15 @@ class PrepData:
         self.trans_inv = dict(zip(self.trans.values(), self.trans.keys()))
         self.elements_per_shard = elements_per_shard
 
-    def read_datasets(self):
-        """Read the dataset, extract the LCs information, with the class and ID.
-        Filter the specified number of LC per class, so it does not read everything.
+    def read_datasets(self) -> None:
+        """Reads and loads datasets based on split configuration.
 
-        If default_split is False, each one of the folds is read separately.
-        No further filtering is done."""
+        Calls the filter functions. 
+        If `default_split` is True, only the training set is loaded.
+        If `custom_test_split` is True, both training and test sets are loaded.
+        If `custom_splits` is True, all three datasets (train, test, val) are loaded. No further filtering is done.
+        """
+        
         # Read stars Data
         self.cols = self.dataset_header + self.params_phys
 
@@ -194,11 +197,18 @@ class PrepData:
             # The data should come filtered beforehand
             pass
 
-    def filter(self, data):
-        """Filter the objects to be read.
-        First by imposing restriction to the number of data points.
-        Second, by extracting a random sample of up to max_l elements
-        per category."""
+    def filter(self, data: pd.DataFrame) -> pd.DataFrame:
+        """Filters the metadata to ensure classes meet the data requirements.
+
+        - Ensures each class has at least `min_l` light curves.
+        - Selects a random subset (≤ `max_l`) per class.
+
+        Args:
+            data (pd.DataFrame): The raw metadata.
+
+        Returns:
+            pd.DataFrame: The filtered metadata.
+        """        
 
         # Objects that fulfill the number of datapoints condition
         bols = np.ones((data.shape[0], len(self.band_names)), dtype=np.bool)
@@ -263,6 +273,11 @@ class PrepData:
 
     def parallel_read(self):
         """Run parallel read using n_jobs threads, depending on the user choice."""
+        """Reads light curve data in parallel using multiple threads.
+
+        This method determines whether to use a default split or a custom split and 
+        calls the appropriate parallel reading function.
+        """        
         if self.default_split:
             self.parallel_read_default()
         else:
@@ -405,9 +420,8 @@ class PrepData:
 
         return ind_train, ind_test, ind_val
 
-    def fit_scalers(self):
-        """Fit and save the scalers (0.1,1.1) for each phys param"""
-
+    def fit_scalers(self) -> None:
+        """Fits and saves scalers for each physical parameter."""
         self.scalers = {}
         df = pd.DataFrame(list(self.dict_train['Physical_Values']))
         for var in self.params_phys:
@@ -422,7 +436,7 @@ class PrepData:
             self.scalers[var].fit(param_series.values.reshape(-1, 1))
 
     def save_scalers(self)->None:
-        """Store the scalers using the CustomScalers class"""
+        """Stores the trained scalers."""
 
         # Define the path of the folder
         path = os.path.join(self.save_dir, 'scalers')
@@ -598,48 +612,6 @@ class PrepData:
                     ex = self.__func_serialize(temp)
                     # Write it to a file
                     writer.write(ex.SerializeToString())
-
-    # def shard_serialize_parallel(self,
-    #                              dict,
-    #                              fold,
-    #                              elements_per_shard=5000,
-    #                              ):
-    #     """Serialize objects given the data and path,
-    #     splitting them into shards."""
-    #     # Create the folders to store the shards
-    #     fold_dir = '/'.join([self.save_dir, fold])
-    #     if not os.path.exists(fold_dir):
-    #         os.makedirs(fold_dir)
-
-    #     keys = dict.keys()
-
-    #     # Number of objects in the split
-    #     N = len(dict['ID'])
-    #     # Compute the number of shards
-    #     n_shards = -np.floor_divide(N, -elements_per_shard)
-    #     # Number of characters of the number of shards
-    #     name_length = len(str(n_shards))
-
-    #     # Create one file per shard
-    #     shard_paths = []
-    #     for shard in range(n_shards):
-    #         # Get the shard number padded with 0s
-    #         shard_name = str(shard + 1).rjust(name_length, '0')
-    #         # Get the shard store name
-    #         shard_name = '_'.join([fold, shard_name, str(n_shards)])
-    #         # Add the extension
-    #         shard_name = shard_name + '.tfrecord'
-    #         # Get the shard save path
-    #         shard_path = '/'.join([self.save_dir, fold, shard_name])
-    #         shard_paths.append(shard_path)
-
-    #     Parallel(self.njobs, backend='threading')(delayed(aux_serialize)(shard,
-    #                                                                      shard_path,
-    #                                                                      elements_per_shard,
-    #                                                                      list(keys),
-    #                                                                      N,
-    #                                                                      dict)
-    #                                               for shard, shard_path in tqdm(enumerate(shard_paths)))
 
     def write_metadata_process(self):
         """Write metadata into a file."""
